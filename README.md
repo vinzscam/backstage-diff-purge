@@ -1,3 +1,10 @@
-# Backstage diff PURGE
+# [Backstage](https://backstage.io)
 
-This branch contains a blank [Backstage](https://backstage.io) project.
+This is your newly scaffolded Backstage App, Good Luck!
+
+To start the app, run:
+
+```sh
+yarn install
+yarn dev
+```
