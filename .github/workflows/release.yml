@@ -52,6 +52,7 @@ jobs:
             echo "Creating diffs between version $version and $NEW_VERSION"
             git diff -U1 release/$version..release/$NEW_VERSION > diffs/$version..$NEW_VERSION.diff
           done
+          jq '."$NEW_VERSION" = {}' < releases.json > releases.json
         env:
           NEW_VERSION: ${{needs.release.outputs.backstage_version}}"
       - name: Setup git bot user
