@@ -1,5 +1,14 @@
 {
-  "0.3.44": {},
+  "0.3.44": {
+    "comments": [
+      {
+        "fileName": "packages/backend/src/plugins/catalog.ts",
+        "lineNumber": 9,
+        "lineChangeType": "add",
+        "content": "This is a random dummy content which also supports markdown:\n- uno\n-due\n-tre"
+      }
+    ]
+  },
   "0.3.41": {
     "usefulContent": {
       "description": "Backstage 0.3.44 includes 599 commits by 73 different contributors, it has improvements to Accessibility APIs, Babel 7 stable support and more.",
@@ -9,15 +18,7 @@
           "url": "https://backstage.spotify.com"
         }
       ]
-    },
-    "comments": [
-      {
-        "fileName": "packages/backend/src/plugins/catalog.ts",
-        "lineNumber": 9,
-        "lineChangeType": "add",
-        "content": "This is a random dummy content which also supports markdown:\n- uno\n-due\n-tre"
-      }
-    ]
+    }
   },
   "0.3.39": {},
   "0.3.45": {}
