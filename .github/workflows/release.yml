@@ -25,6 +25,8 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
       - name: Run @backstage/create-app
         run: printf "$BACKSTAGE_APP_NAME\n\t" | npx @backstage/create-app@${CREATE_APP_VERSION} --skip-install
+      - name: Check current directory
+        run: pwd
       - name: Move all the files into the root directory
         run: cp -a $BACKSTAGE_APP_NAME/ .
       - name: Setup git bot user
