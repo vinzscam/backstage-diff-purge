@@ -5,7 +5,7 @@
         "fileName": "packages/backend/src/plugins/catalog.ts",
         "lineNumber": 9,
         "lineChangeType": "add",
-        "content": "This is a random dummy content which also supports markdown:\n- uno\n-due\n-tre"
+        "content": "This is a random dummy content which also supports markdown:\n\n- uno\n\n- due\n\n- tre"
       }
     ]
   },
