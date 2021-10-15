@@ -26,7 +26,7 @@ jobs:
       - name: Run @backstage/create-app
         run: printf "$BACKSTAGE_APP_NAME\n\t" | npx @backstage/create-app@${CREATE_APP_VERSION} --skip-install
       - name: Move all the files into the root directory
-        run: mv {$BACKSTAGE_APP_NAME/*,$BACKSTAGE_APP_NAME/.*} .
+        run: cp -r {$BACKSTAGE_APP_NAME/*,$BACKSTAGE_APP_NAME/.*} .
       - name: Setup git bot user
         run: |
           git config user.name "github-actions[bot]"
@@ -34,7 +34,7 @@ jobs:
       - name: Add release
         run: |
           git checkout -b release/${CREATE_APP_VERSION}
-          git add .
+          git add -- . ':!$BACKSTAGE_APP_NAME'
           git commit -m "Release ${CREATE_APP_VERSION}"
           git push origin release/${CREATE_APP_VERSION}
       - run: echo "🍏 This job's status is ${{ job.status }}."
