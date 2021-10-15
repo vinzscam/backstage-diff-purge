@@ -26,7 +26,7 @@ jobs:
       - name: Run @backstage/create-app
         run: printf "$BACKSTAGE_APP_NAME\n\t" | npx @backstage/create-app@${CREATE_APP_VERSION} --skip-install
       - name: Move all the files into the root directory
-        run: cp -r {$BACKSTAGE_APP_NAME/*,$BACKSTAGE_APP_NAME/.*} .
+        run: cp -a $BACKSTAGE_APP_NAME/ .
       - name: Setup git bot user
         run: |
           git config user.name "github-actions[bot]"
