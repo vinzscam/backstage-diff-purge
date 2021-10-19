@@ -1,0 +1,2311 @@
+diff --git a/.dockerignore b/.dockerignore
+new file mode 100644
+index 0000000..63c9c34
+--- /dev/null
++++ b/.dockerignore
+@@ -0,0 +1,5 @@
++.git
++node_modules
++packages
++!packages/backend/dist
++plugins
+diff --git a/.gitignore b/.gitignore
+index 6b6e4c5..d16a8d3 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,2 +1,39 @@
++# macOS
+ .DS_Store
+-yarn.lock
+\ No newline at end of file
++
++# Logs
++logs
++*.log
++npm-debug.log*
++yarn-debug.log*
++yarn-error.log*
++lerna-debug.log*
++
++# Coverage directory generated when running tests with coverage
++coverage
++
++# Dependencies
++node_modules/
++
++# Node version directives
++.nvmrc
++
++# dotenv environment variables file
++.env
++.env.test
++
++# Build output
++dist
++dist-types
++
++# Temporary change files created by Vim
++*.swp
++
++# MkDocs build output
++site
++
++# Local configuration files
++*.local.yaml
++
++# Sensitive credentials
++*-credentials.yaml
+diff --git a/.prettierignore b/.prettierignore
+new file mode 100644
+index 0000000..dfb0f1c
+--- /dev/null
++++ b/.prettierignore
+@@ -0,0 +1,4 @@
++dist
++dist-types
++coverage
++.vscode
+diff --git a/README.md b/README.md
+index b2594d1..8c7c437 100644
+--- a/README.md
++++ b/README.md
+@@ -3 +3,8 @@
+ This is your newly scaffolded Backstage App, Good Luck!
++
++To start the app, run:
++
++```sh
++yarn install
++yarn dev
++```
+diff --git a/app-config.production.yaml b/app-config.production.yaml
+new file mode 100644
+index 0000000..92f4574
+--- /dev/null
++++ b/app-config.production.yaml
+@@ -0,0 +1,8 @@
++app:
++  # Should be the same as backend.baseUrl when using the `app-backend` plugin
++  baseUrl: http://localhost:7000
++
++backend:
++  baseUrl: http://localhost:7000
++  listen:
++    port: 7000
+diff --git a/app-config.yaml b/app-config.yaml
+index 0d51cf8..93b0c3f 100644
+--- a/app-config.yaml
++++ b/app-config.yaml
+@@ -5,3 +5,3 @@ app:
+ organization:
+-  name: Acme Corporation
++  name: My Company
+ 
+@@ -9,3 +9,8 @@ backend:
+   baseUrl: http://localhost:7000
+-  listen: 0.0.0.0:7000
++  listen:
++    port: 7000
++  csp:
++    connect-src: ["'self'", 'http:', 'https:']
++    # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
++    # Default Helmet Content-Security-Policy values can be removed by setting the key to false
+   cors:
+@@ -14,2 +19,17 @@ backend:
+     credentials: true
++  database:
++    client: sqlite3
++    connection: ':memory:'
++  cache:
++    store: memory
++  # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
++
++integrations:
++  github:
++    - host: github.com
++      token: ${GITHUB_TOKEN}
++    ### Example for how to add your GitHub Enterprise instance using the API:
++    # - host: ghe.example.net
++    #   apiBaseUrl: https://ghe.example.net/api/v3
++    #   token: ${GHE_TOKEN}
+ 
+@@ -20,3 +40,62 @@ proxy:
+ 
++# Reference documentation http://backstage.io/docs/features/techdocs/configuration
++# Note: After experimenting with basic setup, use CI/CD to generate docs
++# and an external cloud storage when deploying TechDocs for production use-case.
++# https://backstage.io/docs/features/techdocs/how-to-guides#how-to-migrate-from-techdocs-basic-to-recommended-deployment-approach
+ techdocs:
+-  storageUrl: https://techdocs-mock-sites.storage.googleapis.com
++  builder: 'local' # Alternatives - 'external'
++  generator:
++    runIn: 'docker' # Alternatives - 'local'
++  publisher:
++    type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
++
++auth:
++  # see https://backstage.io/docs/auth/ to learn about auth providers
++  providers: {}
++
++scaffolder:
++  github:
++    token: ${GITHUB_TOKEN}
++    visibility: public # or 'internal' or 'private'
++
++catalog:
++  rules:
++    - allow: [Component, System, API, Group, User, Resource, Location]
++  locations:
++    # Backstage example components
++    - type: url
++      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all-components.yaml
++
++    # Backstage example systems
++    - type: url
++      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all-systems.yaml
++
++    # Backstage example APIs
++    - type: url
++      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all-apis.yaml
++
++    # Backstage example resources
++    - type: url
++      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all-resources.yaml
++
++    # Backstage example organization groups
++    - type: url
++      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/acme/org.yaml
++
++    # Backstage example templates
++    - type: url
++      target: https://github.com/backstage/software-templates/blob/main/scaffolder-templates/react-ssr-template/template.yaml
++      rules:
++        - allow: [Template]
++    - type: url
++      target: https://github.com/backstage/software-templates/blob/main/scaffolder-templates/springboot-grpc-template/template.yaml
++      rules:
++        - allow: [Template]
++    - type: url
++      target: https://github.com/spotify/cookiecutter-golang/blob/master/template.yaml
++      rules:
++        - allow: [Template]
++    - type: url
++      target: https://github.com/backstage/software-templates/blob/main/scaffolder-templates/docs-template/template.yaml
++      rules:
++        - allow: [Template]
+diff --git a/catalog-info.yaml b/catalog-info.yaml
+new file mode 100644
+index 0000000..adeb66d
+--- /dev/null
++++ b/catalog-info.yaml
+@@ -0,0 +1,13 @@
++apiVersion: backstage.io/v1alpha1
++kind: Component
++metadata:
++  name: backstagediffapp
++  description: An example of a Backstage application.
++  # Example for optional annotations
++  # annotations:
++  #   github.com/project-slug: backstage/backstage
++  #   backstage.io/techdocs-ref: dir:.
++spec:
++  type: website
++  owner: john@example.com
++  lifecycle: experimental
+diff --git a/package.json b/package.json
+index 29e671b..9d9601f 100644
+--- a/package.json
++++ b/package.json
+@@ -5,11 +5,15 @@
+   "engines": {
+-    "node": "12"
++    "node": "14 || 16"
+   },
+   "scripts": {
++    "dev": "concurrently \"yarn start\" \"yarn start-backend\"",
+     "start": "yarn workspace app start",
++    "start-backend": "yarn workspace backend start",
+     "build": "lerna run build",
++    "build-image": "yarn workspace backend build-image",
+     "tsc": "tsc",
++    "tsc:full": "tsc --skipLibCheck false --incremental false",
+     "clean": "backstage-cli clean && lerna run clean",
+     "diff": "lerna run diff --",
+-    "test": "lerna run test --since origin/master -- --coverage",
++    "test": "backstage-cli test",
+     "test:all": "lerna run test -- --coverage",
+@@ -17,5 +21,10 @@
+     "lint:all": "lerna run lint --",
+-    "create-plugin": "backstage-cli create-plugin",
++    "prettier:check": "prettier --check .",
++    "create-plugin": "backstage-cli create-plugin --scope internal --no-private",
+     "remove-plugin": "backstage-cli remove-plugin"
+   },
++  "resolutions": {
++    "graphql-language-service-interface": "2.8.2",
++    "graphql-language-service-parser": "1.9.0"
++  },
+   "workspaces": {
+@@ -27,9 +36,7 @@
+   "devDependencies": {
+-    "@backstage/cli": "^0.1.1-alpha.12",
+-    "@spotify/prettier-config": "^7.0.0",
+-    "lerna": "^3.20.2",
+-    "prettier": "^1.19.1"
+-  },
+-  "resolutions": {
+-    "esbuild": "0.6.3"
++    "@backstage/cli": "^0.7.16",
++    "@spotify/prettier-config": "^11.0.0",
++    "concurrently": "^6.0.0",
++    "lerna": "^4.0.0",
++    "prettier": "^2.3.2"
+   },
+@@ -44,2 +51,7 @@
+     ]
++  },
++  "jest": {
++    "transformModules": [
++      "@asyncapi/react-component"
++    ]
+   }
+diff --git a/packages/app/cypress/integration/app.js b/packages/app/cypress/integration/app.js
+index 6c561a7..43fb2e3 100644
+--- a/packages/app/cypress/integration/app.js
++++ b/packages/app/cypress/integration/app.js
+@@ -1,7 +1,5 @@
+ describe('App', () => {
+-  it('should render the welcome page', () => {
++  it('should render the catalog', () => {
+     cy.visit('/');
+-    cy.contains('Welcome to Backstage');
+-    cy.contains('Getting Started');
+-    cy.contains('Quick Links');
++    cy.contains('My Company Catalog');
+   });
+diff --git a/packages/app/package.json b/packages/app/package.json
+index bf03475..a860127 100644
+--- a/packages/app/package.json
++++ b/packages/app/package.json
+@@ -4,12 +4,26 @@
+   "private": true,
++  "bundled": true,
+   "dependencies": {
+-    "@material-ui/core": "^4.9.1",
++    "@backstage/catalog-model": "^0.9.4",
++    "@backstage/cli": "^0.7.16",
++    "@backstage/core-app-api": "^0.1.17",
++    "@backstage/core-components": "^0.7.0",
++    "@backstage/core-plugin-api": "^0.1.10",
++    "@backstage/integration-react": "^0.1.12",
++    "@backstage/plugin-api-docs": "^0.6.12",
++    "@backstage/plugin-catalog": "^0.7.1",
++    "@backstage/plugin-catalog-import": "^0.7.2",
++    "@backstage/plugin-catalog-react": "^0.6.0",
++    "@backstage/plugin-github-actions": "^0.4.22",
++    "@backstage/plugin-org": "^0.3.27",
++    "@backstage/plugin-scaffolder": "^0.11.8",
++    "@backstage/plugin-search": "^0.4.15",
++    "@backstage/plugin-tech-radar": "^0.4.11",
++    "@backstage/plugin-techdocs": "^0.12.2",
++    "@backstage/plugin-user-settings": "^0.3.9",
++    "@backstage/test-utils": "^0.1.19",
++    "@backstage/theme": "^0.2.11",
++    "@material-ui/core": "^4.12.2",
+     "@material-ui/icons": "^4.9.1",
+-    "@material-ui/lab": "4.0.0-alpha.45",
+-    "@backstage/cli": "^0.1.1-alpha.12",
+-    "@backstage/core": "^0.1.1-alpha.12",
+-    "@backstage/test-utils": "^0.1.1-alpha.12",
+-    "@backstage/theme": "^0.1.1-alpha.12",
+     "history": "^5.0.0",
+-    "plugin-welcome": "0.0.0",
+     "react": "^16.13.1",
+@@ -18,3 +32,3 @@
+     "react-router-dom": "6.0.0-beta.0",
+-    "react-use": "^14.2.0"
++    "react-use": "^15.3.3"
+   },
+@@ -25,6 +39,6 @@
+     "@types/jest": "^26.0.7",
+-    "@types/node": "^12.0.0",
+-    "@types/react-dom": "^16.9.8",
++    "@types/node": "^14.14.32",
++    "@types/react-dom": "*",
+     "cross-env": "^7.0.0",
+-    "cypress": "^4.2.0",
++    "cypress": "^7.3.0",
+     "eslint-plugin-cypress": "^2.10.3",
+@@ -37,2 +51,3 @@
+     "lint": "backstage-cli lint",
++    "clean": "backstage-cli clean",
+     "test:e2e": "cross-env PORT=3001 start-server-and-test start http://localhost:3001 cy:dev",
+@@ -53,3 +68,6 @@
+     ]
+-  }
++  },
++  "files": [
++    "dist"
++  ]
+ }
+diff --git a/packages/app/public/android-chrome-192x192.png b/packages/app/public/android-chrome-192x192.png
+index 3d56edb..eec0ae2 100644
+Binary files a/packages/app/public/android-chrome-192x192.png and b/packages/app/public/android-chrome-192x192.png differ
+diff --git a/packages/app/public/apple-touch-icon.png b/packages/app/public/apple-touch-icon.png
+index 0977175..3158830 100644
+Binary files a/packages/app/public/apple-touch-icon.png and b/packages/app/public/apple-touch-icon.png differ
+diff --git a/packages/app/public/favicon-16x16.png b/packages/app/public/favicon-16x16.png
+index a455ffa..58cf61a 100644
+Binary files a/packages/app/public/favicon-16x16.png and b/packages/app/public/favicon-16x16.png differ
+diff --git a/packages/app/public/favicon-32x32.png b/packages/app/public/favicon-32x32.png
+index e2707f2..c0915ec 100644
+Binary files a/packages/app/public/favicon-32x32.png and b/packages/app/public/favicon-32x32.png differ
+diff --git a/packages/app/public/favicon.ico b/packages/app/public/favicon.ico
+index 5b58270..5e45e5d 100644
+Binary files a/packages/app/public/favicon.ico and b/packages/app/public/favicon.ico differ
+diff --git a/packages/app/public/index.html b/packages/app/public/index.html
+index ea9208c..b93896c 100644
+--- a/packages/app/public/index.html
++++ b/packages/app/public/index.html
+@@ -50,4 +50,20 @@
+     <title><%= app.title %></title>
++    <% if (app.googleAnalyticsTrackingId && typeof app.googleAnalyticsTrackingId
++    === 'string') { %>
++    <script
++      async
++      src="https://www.googletagmanager.com/gtag/js?id=<%= app.googleAnalyticsTrackingId %>"
++    ></script>
++    <script>
++      window.dataLayer = window.dataLayer || [];
++      function gtag() {
++        dataLayer.push(arguments);
++      }
++      gtag('js', new Date());
++
++      gtag('config', '<%= app.googleAnalyticsTrackingId %>');
++    </script>
++    <% } %>
+   </head>
+-  <body style="margin: 0;">
++  <body style="margin: 0">
+     <noscript>You need to enable JavaScript to run this app.</noscript>
+diff --git a/packages/app/public/safari-pinned-tab.svg b/packages/app/public/safari-pinned-tab.svg
+index 3b0f666..0f500b3 100644
+--- a/packages/app/public/safari-pinned-tab.svg
++++ b/packages/app/public/safari-pinned-tab.svg
+@@ -1,28 +1 @@
+-<?xml version="1.0" standalone="no"?>
+-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+- "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+-<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+- width="512.000000pt" height="512.000000pt" viewBox="0 0 512.000000 512.000000"
+- preserveAspectRatio="xMidYMid meet">
+-<metadata>
+-Created by potrace 1.11, written by Peter Selinger 2001-2013
+-</metadata>
+-<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
+-fill="#000000" stroke="none">
+-<path d="M492 4610 c-4 -3 -8 -882 -7 -1953 l0 -1948 850 2 c898 1 945 3 1118
+-49 505 134 823 531 829 1037 2 136 -9 212 -44 323 -40 125 -89 218 -163 310
+--35 43 -126 128 -169 157 -22 15 -43 30 -46 33 -12 13 -131 70 -188 91 l-64
+-22 60 28 c171 77 317 224 403 404 64 136 92 266 91 425 -5 424 -245 770 -642
+-923 -79 30 -105 39 -155 50 -11 3 -38 10 -60 15 -22 6 -60 13 -85 17 -25 3
+--58 9 -75 12 -36 8 -1643 11 -1653 3z m1497 -743 c236 -68 352 -254 305 -486
+--26 -124 -110 -224 -232 -277 -92 -40 -151 -46 -439 -49 l-283 -3 -1 27 c-1
+-36 -1 760 0 790 l1 23 298 -5 c226 -4 310 -9 351 -20z m-82 -1538 c98 -3 174
+--19 247 -52 169 -78 257 -212 258 -395 0 -116 -36 -221 -100 -293 -64 -72
+--192 -135 -314 -155 -23 -3 -181 -7 -350 -8 l-308 -2 -1 26 c-6 210 1 874 9
+-879 9 5 366 6 559 0z"/>
+-<path d="M4160 1789 c-275 -24 -499 -263 -503 -536 -1 -115 21 -212 66 -292
+-210 -369 697 -402 950 -65 77 103 110 199 111 329 0 50 -6 113 -13 140 -16 58
+--62 155 -91 193 -33 43 -122 132 -132 132 -5 0 -26 11 -46 25 -85 56 -219 85
+--342 74z"/>
+-</g>
+-</svg>
++<svg xmlns="http://www.w3.org/2000/svg" width="682.667" height="682.667" preserveAspectRatio="xMidYMid meet" version="1.0" viewBox="0 0 512 512"><metadata>Created by potrace 1.11, written by Peter Selinger 2001-2013</metadata><g fill="#000" stroke="none"><path d="M492 4610 c-4 -3 -8 -882 -7 -1953 l0 -1948 850 2 c898 1 945 3 1118 49 505 134 823 531 829 1037 2 136 -9 212 -44 323 -40 125 -89 218 -163 310 -35 43 -126 128 -169 157 -22 15 -43 30 -46 33 -12 13 -131 70 -188 91 l-64 22 60 28 c171 77 317 224 403 404 64 136 92 266 91 425 -5 424 -245 770 -642 923 -79 30 -105 39 -155 50 -11 3 -38 10 -60 15 -22 6 -60 13 -85 17 -25 3 -58 9 -75 12 -36 8 -1643 11 -1653 3z m1497 -743 c236 -68 352 -254 305 -486 -26 -124 -110 -224 -232 -277 -92 -40 -151 -46 -439 -49 l-283 -3 -1 27 c-1 36 -1 760 0 790 l1 23 298 -5 c226 -4 310 -9 351 -20z m-82 -1538 c98 -3 174 -19 247 -52 169 -78 257 -212 258 -395 0 -116 -36 -221 -100 -293 -64 -72 -192 -135 -314 -155 -23 -3 -181 -7 -350 -8 l-308 -2 -1 26 c-6 210 1 874 9 879 9 5 366 6 559 0z" transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"/><path d="M4160 1789 c-275 -24 -499 -263 -503 -536 -1 -115 21 -212 66 -292 210 -369 697 -402 950 -65 77 103 110 199 111 329 0 50 -6 113 -13 140 -16 58 -62 155 -91 193 -33 43 -122 132 -132 132 -5 0 -26 11 -46 25 -85 56 -219 85 -342 74z" transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"/></g></svg>
+\ No newline at end of file
+diff --git a/packages/app/src/App.test.tsx b/packages/app/src/App.test.tsx
+index b94eab5..82bc479 100644
+--- a/packages/app/src/App.test.tsx
++++ b/packages/app/src/App.test.tsx
+@@ -6,5 +6,5 @@ describe('App', () => {
+   it('should render', async () => {
+-    Object.defineProperty(process.env, 'APP_CONFIG', {
+-      configurable: true,
+-      value: [
++    process.env = {
++      NODE_ENV: 'test',
++      APP_CONFIG: [
+         {
+@@ -12,2 +12,6 @@ describe('App', () => {
+             app: { title: 'Test' },
++            backend: { baseUrl: 'http://localhost:7000' },
++            techdocs: {
++              storageUrl: 'http://localhost:7000/api/techdocs/static/docs',
++            },
+           },
+@@ -15,4 +19,4 @@ describe('App', () => {
+         },
+-      ],
+-    });
++      ] as any,
++    };
+ 
+diff --git a/packages/app/src/App.tsx b/packages/app/src/App.tsx
+index 8a0aedc..4cd8368 100644
+--- a/packages/app/src/App.tsx
++++ b/packages/app/src/App.tsx
+@@ -1,7 +1,45 @@
+-import { createApp } from '@backstage/core';
+-import React, { FC } from 'react';
+-import * as plugins from './plugins';
++import React from 'react';
++import { Navigate, Route } from 'react-router';
++import { apiDocsPlugin, ApiExplorerPage } from '@backstage/plugin-api-docs';
++import {
++  CatalogEntityPage,
++  CatalogIndexPage,
++  catalogPlugin,
++} from '@backstage/plugin-catalog';
++import {
++  CatalogImportPage,
++  catalogImportPlugin,
++} from '@backstage/plugin-catalog-import';
++import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
++import { SearchPage } from '@backstage/plugin-search';
++import { TechRadarPage } from '@backstage/plugin-tech-radar';
++import {
++  DefaultTechDocsHome,
++  TechDocsIndexPage,
++  techdocsPlugin,
++  TechDocsReaderPage,
++} from '@backstage/plugin-techdocs';
++import { UserSettingsPage } from '@backstage/plugin-user-settings';
++import { apis } from './apis';
++import { entityPage } from './components/catalog/EntityPage';
++import { searchPage } from './components/search/SearchPage';
++import { Root } from './components/Root';
++
++import { AlertDisplay, OAuthRequestDialog } from '@backstage/core-components';
++import { createApp, FlatRoutes } from '@backstage/core-app-api';
+ 
+ const app = createApp({
+-  plugins: Object.values(plugins),
++  apis,
++  bindRoutes({ bind }) {
++    bind(catalogPlugin.externalRoutes, {
++      createComponent: scaffolderPlugin.routes.root,
++      viewTechDoc: techdocsPlugin.routes.docRoot,
++    });
++    bind(apiDocsPlugin.externalRoutes, {
++      createComponent: scaffolderPlugin.routes.root,
++    });
++    bind(scaffolderPlugin.externalRoutes, {
++      registerComponent: catalogImportPlugin.routes.importPage,
++    });
++  },
+ });
+@@ -10,8 +48,40 @@ const AppProvider = app.getProvider();
+ const AppRouter = app.getRouter();
+-const AppRoutes = app.getRoutes();
+ 
+-const App: FC<{}> = () => (
++const routes = (
++  <FlatRoutes>
++    <Navigate key="/" to="catalog" />
++    <Route path="/catalog" element={<CatalogIndexPage />} />
++    <Route
++      path="/catalog/:namespace/:kind/:name"
++      element={<CatalogEntityPage />}
++    >
++      {entityPage}
++    </Route>
++    <Route path="/docs" element={<TechDocsIndexPage />}>
++      <DefaultTechDocsHome />
++    </Route>
++    <Route
++      path="/docs/:namespace/:kind/:name/*"
++      element={<TechDocsReaderPage />}
++    />
++    <Route path="/create" element={<ScaffolderPage />} />
++    <Route path="/api-docs" element={<ApiExplorerPage />} />
++    <Route
++      path="/tech-radar"
++      element={<TechRadarPage width={1500} height={800} />}
++    />
++    <Route path="/catalog-import" element={<CatalogImportPage />} />
++    <Route path="/search" element={<SearchPage />}>
++      {searchPage}
++    </Route>
++    <Route path="/settings" element={<UserSettingsPage />} />
++  </FlatRoutes>
++);
++
++const App = () => (
+   <AppProvider>
++    <AlertDisplay />
++    <OAuthRequestDialog />
+     <AppRouter>
+-      <AppRoutes />
++      <Root>{routes}</Root>
+     </AppRouter>
+diff --git a/packages/app/src/apis.ts b/packages/app/src/apis.ts
+new file mode 100644
+index 0000000..c89753a
+--- /dev/null
++++ b/packages/app/src/apis.ts
+@@ -0,0 +1,19 @@
++import {
++  ScmIntegrationsApi,
++  scmIntegrationsApiRef,
++  ScmAuth,
++} from '@backstage/integration-react';
++import {
++  AnyApiFactory,
++  configApiRef,
++  createApiFactory,
++} from '@backstage/core-plugin-api';
++
++export const apis: AnyApiFactory[] = [
++  createApiFactory({
++    api: scmIntegrationsApiRef,
++    deps: { configApi: configApiRef },
++    factory: ({ configApi }) => ScmIntegrationsApi.fromConfig(configApi),
++  }),
++  ScmAuth.createDefaultApiFactory(),
++];
+diff --git a/packages/app/src/components/Root/LogoFull.tsx b/packages/app/src/components/Root/LogoFull.tsx
+new file mode 100644
+index 0000000..c7b1c84
+--- /dev/null
++++ b/packages/app/src/components/Root/LogoFull.tsx
+@@ -0,0 +1,46 @@
++/*
++ * Copyright 2020 The Backstage Authors
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import React from 'react';
++import { makeStyles } from '@material-ui/core';
++
++const useStyles = makeStyles({
++  svg: {
++    width: 'auto',
++    height: 30,
++  },
++  path: {
++    fill: '#7df3e1',
++  },
++});
++const LogoFull = () => {
++  const classes = useStyles();
++
++  return (
++    <svg
++      className={classes.svg}
++      xmlns="http://www.w3.org/2000/svg"
++      viewBox="0 0 2079.95 456.05"
++    >
++      <path
++        className={classes.path}
++        d="M302.9,180a80.62,80.62,0,0,0,13.44-10.37c.8-.77,1.55-1.54,2.31-2.31a81.89,81.89,0,0,0,7.92-9.37,62.37,62.37,0,0,0,6.27-10.77,48.6,48.6,0,0,0,4.36-16.4c1.49-19.39-10-38.67-35.62-54.22L198.42,14,78.16,129.22l-78.29,75,108.6,65.9a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.8,66.42-25.69,19.16-18.36,25.52-42.12,13.7-61.87a49.69,49.69,0,0,0-6.8-8.87,89.78,89.78,0,0,0,19.28,2.15H259a85.09,85.09,0,0,0,31-5.79A80.88,80.88,0,0,0,302.9,180Zm-100.59,59.8c-19.32,18.51-50.4,21.24-75.7,5.9l-75.13-45.6,67.44-64.65,76.42,46.39C222.88,198.57,221.36,221.6,202.31,239.84Zm8.94-82.21L140.6,114.74,205,53l69.37,42.11c25.94,15.73,29.31,37.05,10.55,55A60.71,60.71,0,0,1,211.25,157.63Zm29.86,190c-19.57,18.75-46.17,29.08-74.88,29.08a123.84,123.84,0,0,1-64.11-18.19L-.13,296.51v24.67l108.6,65.91a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.81,66.42-25.69,12.88-12.34,20-27.13,19.68-41.49v-1.79A87.85,87.85,0,0,1,241.11,347.67Zm0-39c-19.57,18.76-46.17,29.09-74.88,29.09a123.84,123.84,0,0,1-64.11-18.19L-.13,257.52V282.2l108.6,65.91a111.59,111.59,0,0,0,57.76,16.41c24.92,0,48.8-8.8,66.42-25.68,12.88-12.35,20-27.13,19.68-41.5v-1.79A86.86,86.86,0,0,1,241.11,308.68Zm0-39c-19.57,18.76-46.17,29.09-74.88,29.09a123.84,123.84,0,0,1-64.11-18.19L-.13,218.54v24.68l108.6,65.91a111.59,111.59,0,0,0,57.76,16.41c24.92,0,48.8-8.8,66.42-25.69,12.88-12.34,20-27.12,19.68-41.49v-1.82A87.14,87.14,0,0,1,241.11,269.7Zm83.69,25.74a94.16,94.16,0,0,1-60.19,25.86h0V348a81.6,81.6,0,0,0,51.73-22.37c14-13.38,21.15-28.11,21-42.64v-2.2A95.14,95.14,0,0,1,324.8,295.44Zm-83.69,91.21c-19.57,18.75-46.17,29.09-74.88,29.09a123.76,123.76,0,0,1-64.11-18.2L-.13,335.49v24.67l108.6,65.91a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.81,66.42-25.69,12.88-12.34,20-27.13,19.68-41.49v-1.79A87.35,87.35,0,0,1,241.11,386.65Zm85.75-210.21c-.68.69-1.35,1.38-2.06,2.05a99.19,99.19,0,0,1-22.23,15.69,94.53,94.53,0,0,1-26.24,8.71,97.84,97.84,0,0,1-14.16,1.57c.5,1.61.9,3.25,1.25,4.9a52.7,52.7,0,0,1,1.13,12V231h.05A84.48,84.48,0,0,0,290,225.47a80.83,80.83,0,0,0,26.38-16.82c.81-.77,1.51-1.56,2.27-2.34a82,82,0,0,0,7.92-9.38,62.85,62.85,0,0,0,6.29-10.78,48.5,48.5,0,0,0,4.32-16.44c.09-1.23.2-2.47.19-3.7v-2c-.72,1-1.48,2.06-2.26,3.09A98,98,0,0,1,326.86,176.44Zm0,77.92c-.68.7-1.3,1.41-2,2.1a94.09,94.09,0,0,1-60.19,25.85h0V309h0a81.65,81.65,0,0,0,51.73-22.37,73.51,73.51,0,0,0,16.48-22.49,48.56,48.56,0,0,0,4.32-16.44c.09-1.24.2-2.48.19-3.71v-2.2c-.74,1.08-1.47,2.16-2.27,3.22A95.81,95.81,0,0,1,326.82,254.36Zm0-39c-.68.7-1.3,1.41-2,2.1a92.22,92.22,0,0,1-10.62,8.65,93.53,93.53,0,0,1-11.63,7,95.63,95.63,0,0,1-37.94,10.18h-.05l0,26.67h0a81.63,81.63,0,0,0,51.73-22.37c.81-.77,1.51-1.56,2.27-2.34a82,82,0,0,0,7.92-9.38,63.16,63.16,0,0,0,6.29-10.77,48.55,48.55,0,0,0,4.32-16.45c.09-1.23.2-2.47.19-3.7v-2.2c-.74,1.08-1.47,2.16-2.27,3.22A98.19,98.19,0,0,1,326.82,215.38Zm241-88.84q7.94,0,17.09.17t18.12,1a139.3,139.3,0,0,1,16.74,2.57,42.78,42.78,0,0,1,13.3,5.14,64.27,64.27,0,0,1,20.54,19.89Q662,168,662,186.54q0,19.54-9.49,33.78t-27.1,21.09v.68q22.78,4.82,34.87,20.58t12.08,38.4a72.62,72.62,0,0,1-4.83,26.06,65.29,65.29,0,0,1-14.33,22.46,71.57,71.57,0,0,1-23.47,15.78q-14,6-32.28,6H478.38V126.54Zm9,105.27q28,0,40.21-9.78t12.26-29.31q0-13-4.14-20.58a29.47,29.47,0,0,0-11.4-11.66A45,45,0,0,0,597,155.17a161.2,161.2,0,0,0-20.19-1.2h-65.6v77.84Zm16.57,112.13q21.74,0,34-11.66T639.59,300q0-12-4.48-19.88a34.85,34.85,0,0,0-11.91-12.52,50.14,50.14,0,0,0-17.09-6.52,105,105,0,0,0-20-1.88H511.17v84.7Zm274.79,26.74q-7.61,4.45-21.06,4.46-11.4,0-18.12-6.34t-6.74-20.75a70.17,70.17,0,0,1-28.13,20.75,97.87,97.87,0,0,1-57.65,3.6,53.51,53.51,0,0,1-18.82-8.58A41.19,41.19,0,0,1,705,348.56q-4.65-9.42-4.66-22.8,0-15.09,5.18-24.69a44.92,44.92,0,0,1,13.64-15.6,62.63,62.63,0,0,1,19.33-9.09q10.88-3.08,22.27-5.14,12.08-2.4,23-3.6a128,128,0,0,0,19.16-3.43c5.53-1.48,9.89-3.65,13.12-6.51s4.83-7,4.83-12.52q0-9.6-3.62-15.43a24.94,24.94,0,0,0-9.32-8.92,38.38,38.38,0,0,0-12.78-4.11,96.54,96.54,0,0,0-14-1q-18.63,0-31.07,7T736.6,249.29H707.26q.69-16.46,6.9-27.77a52.21,52.21,0,0,1,16.57-18.35,70,70,0,0,1,23.65-10.11A125.51,125.51,0,0,1,782.86,190a168.63,168.63,0,0,1,24,1.72,63.26,63.26,0,0,1,21.58,7A41.23,41.23,0,0,1,844,213.59q5.87,9.57,5.87,25v91q0,10.26,1.21,15.05t8.11,4.79a35.57,35.57,0,0,0,9-1.37Zm-47.64-90.87c-3.69,2.74-8.52,4.72-14.5,6s-12.26,2.27-18.82,3.07-13.17,1.71-19.85,2.73a73.7,73.7,0,0,0-18,4.94,32.62,32.62,0,0,0-12.94,9.73q-5,6.32-5,17.23a23.31,23.31,0,0,0,2.94,12.11,24.11,24.11,0,0,0,7.59,8,32,32,0,0,0,10.88,4.44,60.94,60.94,0,0,0,13.11,1.36q14.5,0,24.86-3.92a52.49,52.49,0,0,0,16.91-9.9,39.1,39.1,0,0,0,9.67-13,32.53,32.53,0,0,0,3.11-13.14ZM1002.07,225q-11.05-9.25-29.69-9.26-15.89,0-26.58,5.83A47.29,47.29,0,0,0,928.71,237a64.66,64.66,0,0,0-9.15,22.12A119.83,119.83,0,0,0,916.8,285a98.22,98.22,0,0,0,2.93,24,64.18,64.18,0,0,0,9.15,20.74,46.2,46.2,0,0,0,16.23,14.58q10,5.49,23.82,5.48,21.75,0,34-11.31t15-31.89h30q-4.83,32.91-24.68,50.75t-54,17.83q-20.37,0-36.07-6.52A69.86,69.86,0,0,1,907,350.11a79.92,79.92,0,0,1-15.88-28.63A118.64,118.64,0,0,1,885.73,285a129.41,129.41,0,0,1,5.18-37.21,85.63,85.63,0,0,1,15.71-30.17A73.46,73.46,0,0,1,933,197.35Q948.91,190,970,190a108.54,108.54,0,0,1,28.48,3.6,69.59,69.59,0,0,1,23.48,11.15,61,61,0,0,1,16.74,19q6.55,11.49,8.29,27.26h-30.38Q1013.11,234.21,1002.07,225Zm109.77-98.41v145l81.47-77.49h39.36l-70.77,64.46,75.95,112.82h-37.29l-61.1-92.59-27.62,25.38v67.21H1082.5V126.54Zm170.54,205.22a31.07,31.07,0,0,0,10.87,10.63,49,49,0,0,0,15.19,5.66,87.06,87.06,0,0,0,17.44,1.71,109.18,109.18,0,0,0,14.5-1,53.22,53.22,0,0,0,14-3.78,26.27,26.27,0,0,0,10.53-8q4.14-5.32,4.14-13.55,0-11.31-8.63-17.14a73.69,73.69,0,0,0-21.58-9.43q-12.94-3.6-28.13-6.52a146,146,0,0,1-28.14-8.23A58.16,58.16,0,0,1,1261,267.13q-8.64-9.6-8.63-26.75,0-13.38,6-23a49.26,49.26,0,0,1,15.53-15.61,71.76,71.76,0,0,1,21.4-8.91A99.41,99.41,0,0,1,1319,190a141.31,141.31,0,0,1,28,2.58,64.85,64.85,0,0,1,22.62,8.91,46.16,46.16,0,0,1,15.7,17.15q5.87,10.8,6.91,26.91h-29.35q-.69-8.57-4.48-14.23a29.36,29.36,0,0,0-9.67-9.08,44.16,44.16,0,0,0-12.94-5,67.68,67.68,0,0,0-14.33-1.54,87.29,87.29,0,0,0-13.29,1,45.28,45.28,0,0,0-12.26,3.6,24.49,24.49,0,0,0-9,6.86q-3.46,4.29-3.46,11.14a16.32,16.32,0,0,0,5.36,12.52,42.75,42.75,0,0,0,13.63,8.23,120,120,0,0,0,18.64,5.48q10.37,2.24,20.72,4.63,11,2.4,21.57,5.83A70.74,70.74,0,0,1,1382,284.1a44.55,44.55,0,0,1,13.12,14.23q5,8.58,5,21.26,0,16.13-6.73,26.75a52.5,52.5,0,0,1-17.61,17.14,73.89,73.89,0,0,1-24.51,9.09,146.3,146.3,0,0,1-27.1,2.57,126.24,126.24,0,0,1-28.31-3.09A69.56,69.56,0,0,1,1272,361.94a51.74,51.74,0,0,1-16.57-18.52q-6.21-11.49-6.9-27.95h29.34A32.65,32.65,0,0,0,1282.38,331.76Zm226.46-137.67v25.72h-35.56V329.88a31.37,31.37,0,0,0,.87,8.23,8.42,8.42,0,0,0,3.28,4.8,14.61,14.61,0,0,0,6.73,2.23,99.19,99.19,0,0,0,11.22.51h13.46v25.72H1486.4a105.8,105.8,0,0,1-19.5-1.55,28.65,28.65,0,0,1-13.12-5.65,24.09,24.09,0,0,1-7.42-11.66q-2.43-7.54-2.42-19.89V219.81h-30.38V194.09h30.38V140.94h29.34v53.15ZM1699.4,370.68q-7.61,4.45-21.06,4.46-11.4,0-18.12-6.34t-6.74-20.75a70.17,70.17,0,0,1-28.13,20.75,97.87,97.87,0,0,1-57.65,3.6,53.51,53.51,0,0,1-18.82-8.58,41.19,41.19,0,0,1-12.6-15.26q-4.65-9.42-4.66-22.8,0-15.09,5.18-24.69a44.92,44.92,0,0,1,13.64-15.6,62.63,62.63,0,0,1,19.33-9.09q10.88-3.08,22.27-5.14,12.07-2.4,23-3.6a128,128,0,0,0,19.16-3.43c5.53-1.48,9.89-3.65,13.12-6.51s4.83-7,4.83-12.52q0-9.6-3.62-15.43a24.94,24.94,0,0,0-9.32-8.92,38.38,38.38,0,0,0-12.78-4.11,96.54,96.54,0,0,0-14-1q-18.63,0-31.07,7t-13.46,26.57h-29.34q.67-16.46,6.9-27.77A52.21,52.21,0,0,1,1562,203.17a70,70,0,0,1,23.65-10.11,125.51,125.51,0,0,1,28.48-3.09,168.63,168.63,0,0,1,24,1.72,63.26,63.26,0,0,1,21.58,7,41.23,41.23,0,0,1,15.53,14.89q5.87,9.57,5.87,25v91q0,10.26,1.21,15.05t8.11,4.79a35.57,35.57,0,0,0,9-1.37Zm-47.64-90.87c-3.69,2.74-8.52,4.72-14.5,6s-12.26,2.27-18.82,3.07-13.17,1.71-19.85,2.73a73.7,73.7,0,0,0-17.95,4.94,32.62,32.62,0,0,0-12.94,9.73q-5,6.32-5,17.23a23.31,23.31,0,0,0,2.94,12.11,24.11,24.11,0,0,0,7.59,8,32,32,0,0,0,10.88,4.44,60.94,60.94,0,0,0,13.11,1.36q14.51,0,24.86-3.92a52.49,52.49,0,0,0,16.91-9.9,39.1,39.1,0,0,0,9.67-13,32.53,32.53,0,0,0,3.11-13.14Zm208.85,141.62q-20,21.6-62.83,21.6a122.11,122.11,0,0,1-25.37-2.74,78,78,0,0,1-23.48-8.92,54.41,54.41,0,0,1-17.43-16.11q-6.91-10-7.6-24.35h29.35a21.47,21.47,0,0,0,5,13.38,36.67,36.67,0,0,0,11.4,8.91,55.52,55.52,0,0,0,14.67,5,79.51,79.51,0,0,0,15.19,1.55q14.49,0,24.51-5A46,46,0,0,0,1840.59,401a56.53,56.53,0,0,0,9.49-21.09,117.46,117.46,0,0,0,2.94-27.09V341.19h-.7q-7.59,16.46-23,24.18a71.8,71.8,0,0,1-32.63,7.71q-20,0-34.86-7.2A72.88,72.88,0,0,1,1737,346.51a82.13,82.13,0,0,1-15-28.46,116.62,116.62,0,0,1-5-34.47,133.92,133.92,0,0,1,4.14-32.4A88.17,88.17,0,0,1,1735,221a75.49,75.49,0,0,1,25.55-22.29q15.87-8.75,39-8.75a66.21,66.21,0,0,1,31.07,7.38,52.13,52.13,0,0,1,22.09,22.11h.35V194.09h27.61V356.28Q1880.63,399.83,1860.61,421.43Zm-37.46-79.72a47.94,47.94,0,0,0,16.4-15.78,71.89,71.89,0,0,0,9.15-22.11,106.77,106.77,0,0,0,2.93-24.69,96.71,96.71,0,0,0-2.76-23,64,64,0,0,0-8.8-20.4,45.76,45.76,0,0,0-15.71-14.57q-9.66-5.49-23.47-5.49-14.16,0-24.17,5.32a46.77,46.77,0,0,0-16.4,14.23,60.14,60.14,0,0,0-9.32,20.57,99.69,99.69,0,0,0-2.93,24.35,120.63,120.63,0,0,0,2.42,24,67.5,67.5,0,0,0,8.28,21.77,46.37,46.37,0,0,0,15.54,15.78q9.66,6,24.16,6T1823.15,341.71Zm228,18.34q-20,15.09-50.41,15.09-21.4,0-37.11-6.86a73.16,73.16,0,0,1-26.41-19.2,81.52,81.52,0,0,1-16-29.49,141.12,141.12,0,0,1-6-37.38,106.1,106.1,0,0,1,6.21-37A88.56,88.56,0,0,1,1938.8,216a79.09,79.09,0,0,1,26.58-19.2A81.66,81.66,0,0,1,1999,190q23.82,0,39.53,9.78a78,78,0,0,1,25.2,24.86,98.18,98.18,0,0,1,13.12,32.91,140.6,140.6,0,0,1,2.93,34h-133.6a70,70,0,0,0,2.76,22.12,49.9,49.9,0,0,0,10,18.51A49.1,49.1,0,0,0,1976.6,345q10.7,4.82,25.2,4.8,18.65,0,30.55-8.57t15.71-26.06h29Q2071.18,345,2051.17,360.05Zm-7.08-113.84a50,50,0,0,0-10.7-16,53.1,53.1,0,0,0-56.62-10.63,47.48,47.48,0,0,0-15.71,10.81,51.69,51.69,0,0,0-10.35,15.94,60.18,60.18,0,0,0-4.49,19.37h102.53A59.47,59.47,0,0,0,2044.09,246.21ZM302.9,180a80.62,80.62,0,0,0,13.44-10.37c.8-.77,1.55-1.54,2.31-2.31a81.89,81.89,0,0,0,7.92-9.37,62.37,62.37,0,0,0,6.27-10.77,48.6,48.6,0,0,0,4.36-16.4c1.49-19.39-10-38.67-35.62-54.22L198.42,14,78.16,129.22l-78.29,75,108.6,65.9a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.8,66.42-25.69,19.16-18.36,25.52-42.12,13.7-61.87a49.69,49.69,0,0,0-6.8-8.87,89.78,89.78,0,0,0,19.28,2.15H259a85.09,85.09,0,0,0,31-5.79A80.88,80.88,0,0,0,302.9,180Zm-100.59,59.8c-19.32,18.51-50.4,21.24-75.7,5.9l-75.13-45.6,67.44-64.65,76.42,46.39C222.88,198.57,221.36,221.6,202.31,239.84Zm8.94-82.21L140.6,114.74,205,53l69.37,42.11c25.94,15.73,29.31,37.05,10.55,55A60.71,60.71,0,0,1,211.25,157.63Zm29.86,190c-19.57,18.75-46.17,29.08-74.88,29.08a123.84,123.84,0,0,1-64.11-18.19L-.13,296.51v24.67l108.6,65.91a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.81,66.42-25.69,12.88-12.34,20-27.13,19.68-41.49v-1.79A87.85,87.85,0,0,1,241.11,347.67Zm0-39c-19.57,18.76-46.17,29.09-74.88,29.09a123.84,123.84,0,0,1-64.11-18.19L-.13,257.52V282.2l108.6,65.91a111.59,111.59,0,0,0,57.76,16.41c24.92,0,48.8-8.8,66.42-25.68,12.88-12.35,20-27.13,19.68-41.5v-1.79A86.86,86.86,0,0,1,241.11,308.68Zm0-39c-19.57,18.76-46.17,29.09-74.88,29.09a123.84,123.84,0,0,1-64.11-18.19L-.13,218.54v24.68l108.6,65.91a111.59,111.59,0,0,0,57.76,16.41c24.92,0,48.8-8.8,66.42-25.69,12.88-12.34,20-27.12,19.68-41.49v-1.82A87.14,87.14,0,0,1,241.11,269.7Zm83.69,25.74a94.16,94.16,0,0,1-60.19,25.86h0V348a81.6,81.6,0,0,0,51.73-22.37c14-13.38,21.15-28.11,21-42.64v-2.2A95.14,95.14,0,0,1,324.8,295.44Zm-83.69,91.21c-19.57,18.75-46.17,29.09-74.88,29.09a123.76,123.76,0,0,1-64.11-18.2L-.13,335.49v24.67l108.6,65.91a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.81,66.42-25.69,12.88-12.34,20-27.13,19.68-41.49v-1.79A87.35,87.35,0,0,1,241.11,386.65Zm85.75-210.21c-.68.69-1.35,1.38-2.06,2.05a99.19,99.19,0,0,1-22.23,15.69,94.53,94.53,0,0,1-26.24,8.71,97.84,97.84,0,0,1-14.16,1.57c.5,1.61.9,3.25,1.25,4.9a52.7,52.7,0,0,1,1.13,12V231h.05A84.48,84.48,0,0,0,290,225.47a80.83,80.83,0,0,0,26.38-16.82c.81-.77,1.51-1.56,2.27-2.34a82,82,0,0,0,7.92-9.38,62.85,62.85,0,0,0,6.29-10.78,48.5,48.5,0,0,0,4.32-16.44c.09-1.23.2-2.47.19-3.7v-2c-.72,1-1.48,2.06-2.26,3.09A98,98,0,0,1,326.86,176.44Zm0,77.92c-.68.7-1.3,1.41-2,2.1a94.09,94.09,0,0,1-60.19,25.85h0V309h0a81.65,81.65,0,0,0,51.73-22.37,73.51,73.51,0,0,0,16.48-22.49,48.56,48.56,0,0,0,4.32-16.44c.09-1.24.2-2.48.19-3.71v-2.2c-.74,1.08-1.47,2.16-2.27,3.22A95.81,95.81,0,0,1,326.82,254.36Zm0-39c-.68.7-1.3,1.41-2,2.1a92.22,92.22,0,0,1-10.62,8.65,93.53,93.53,0,0,1-11.63,7,95.63,95.63,0,0,1-37.94,10.18h-.05l0,26.67h0a81.63,81.63,0,0,0,51.73-22.37c.81-.77,1.51-1.56,2.27-2.34a82,82,0,0,0,7.92-9.38,63.16,63.16,0,0,0,6.29-10.77,48.55,48.55,0,0,0,4.32-16.45c.09-1.23.2-2.47.19-3.7v-2.2c-.74,1.08-1.47,2.16-2.27,3.22A98.19,98.19,0,0,1,326.82,215.38Z"
++      />
++    </svg>
++  );
++};
++
++export default LogoFull;
+diff --git a/packages/app/src/components/Root/LogoIcon.tsx b/packages/app/src/components/Root/LogoIcon.tsx
+new file mode 100644
+index 0000000..073cf6e
+--- /dev/null
++++ b/packages/app/src/components/Root/LogoIcon.tsx
+@@ -0,0 +1,47 @@
++/*
++ * Copyright 2020 The Backstage Authors
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import React from 'react';
++import { makeStyles } from '@material-ui/core';
++
++const useStyles = makeStyles({
++  svg: {
++    width: 'auto',
++    height: 28,
++  },
++  path: {
++    fill: '#7df3e1',
++  },
++});
++
++const LogoIcon = () => {
++  const classes = useStyles();
++
++  return (
++    <svg
++      className={classes.svg}
++      xmlns="http://www.w3.org/2000/svg"
++      viewBox="0 0 337.46 428.5"
++    >
++      <path
++        className={classes.path}
++        d="M303,166.05a80.69,80.69,0,0,0,13.45-10.37c.79-.77,1.55-1.53,2.3-2.3a83.12,83.12,0,0,0,7.93-9.38A63.69,63.69,0,0,0,333,133.23a48.58,48.58,0,0,0,4.35-16.4c1.49-19.39-10-38.67-35.62-54.22L198.56,0,78.3,115.23,0,190.25l108.6,65.91a111.59,111.59,0,0,0,57.76,16.41c24.92,0,48.8-8.8,66.42-25.69,19.16-18.36,25.52-42.12,13.7-61.87a49.22,49.22,0,0,0-6.8-8.87A89.17,89.17,0,0,0,259,178.29h.15a85.08,85.08,0,0,0,31-5.79A80.88,80.88,0,0,0,303,166.05ZM202.45,225.86c-19.32,18.51-50.4,21.23-75.7,5.9L51.61,186.15l67.45-64.64,76.41,46.38C223,184.58,221.49,207.61,202.45,225.86Zm8.93-82.22-70.65-42.89L205.14,39,274.51,81.1c25.94,15.72,29.31,37,10.55,55A60.69,60.69,0,0,1,211.38,143.64Zm29.86,190c-19.57,18.75-46.17,29.09-74.88,29.09a123.73,123.73,0,0,1-64.1-18.2L0,282.52v24.67L108.6,373.1a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.81,66.42-25.69,12.88-12.34,20-27.13,19.68-41.49v-1.79A87.27,87.27,0,0,1,241.24,333.68Zm0-39c-19.57,18.75-46.17,29.08-74.88,29.08a123.81,123.81,0,0,1-64.1-18.19L0,243.53v24.68l108.6,65.91a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.81,66.42-25.69,12.88-12.34,20-27.13,19.68-41.5v-1.78A87.27,87.27,0,0,1,241.24,294.7Zm0-39c-19.57,18.76-46.17,29.09-74.88,29.09a123.81,123.81,0,0,1-64.1-18.19L0,204.55v24.68l108.6,65.91a111.59,111.59,0,0,0,57.76,16.41c24.92,0,48.8-8.8,66.42-25.68,12.88-12.35,20-27.13,19.68-41.5v-1.82A86.09,86.09,0,0,1,241.24,255.71Zm83.7,25.74a94.15,94.15,0,0,1-60.2,25.86h0V334a81.6,81.6,0,0,0,51.74-22.37c14-13.38,21.14-28.11,21-42.64v-2.19A94.92,94.92,0,0,1,324.94,281.45Zm-83.7,91.21c-19.57,18.76-46.17,29.09-74.88,29.09a123.73,123.73,0,0,1-64.1-18.2L0,321.5v24.68l108.6,65.9a111.6,111.6,0,0,0,57.76,16.42c24.92,0,48.8-8.8,66.42-25.69,12.88-12.34,20-27.13,19.68-41.49v-1.79A86.29,86.29,0,0,1,241.24,372.66ZM327,162.45c-.68.69-1.35,1.38-2.05,2.06a94.37,94.37,0,0,1-10.64,8.65,91.35,91.35,0,0,1-11.6,7,94.53,94.53,0,0,1-26.24,8.71,97.69,97.69,0,0,1-14.16,1.57c.5,1.61.9,3.25,1.25,4.9a53.27,53.27,0,0,1,1.14,12V217h.05a84.41,84.41,0,0,0,25.35-5.55,81,81,0,0,0,26.39-16.82c.8-.77,1.5-1.56,2.26-2.34a82.08,82.08,0,0,0,7.93-9.38A63.76,63.76,0,0,0,333,172.17a48.55,48.55,0,0,0,4.32-16.45c.09-1.23.2-2.47.19-3.7V150q-1.08,1.54-2.25,3.09A96.73,96.73,0,0,1,327,162.45Zm0,77.92c-.69.7-1.31,1.41-2,2.1a94.2,94.2,0,0,1-60.2,25.86h0l0,26.67h0a81.6,81.6,0,0,0,51.74-22.37A73.51,73.51,0,0,0,333,250.13a48.56,48.56,0,0,0,4.32-16.44c.09-1.24.2-2.47.19-3.71v-2.19c-.74,1.07-1.46,2.15-2.27,3.21A95.68,95.68,0,0,1,327,240.37Zm0-39c-.69.7-1.31,1.41-2,2.1a93.18,93.18,0,0,1-10.63,8.65,91.63,91.63,0,0,1-11.63,7,95.47,95.47,0,0,1-37.94,10.18h0V256h0a81.65,81.65,0,0,0,51.74-22.37c.8-.77,1.5-1.56,2.26-2.34a82.08,82.08,0,0,0,7.93-9.38A63.76,63.76,0,0,0,333,211.15a48.56,48.56,0,0,0,4.32-16.44c.09-1.24.2-2.48.19-3.71v-2.2c-.74,1.08-1.46,2.16-2.27,3.22A95.68,95.68,0,0,1,327,201.39Z"
++      />
++    </svg>
++  );
++};
++
++export default LogoIcon;
+diff --git a/packages/app/src/components/Root/Root.tsx b/packages/app/src/components/Root/Root.tsx
+new file mode 100644
+index 0000000..198e7ec
+--- /dev/null
++++ b/packages/app/src/components/Root/Root.tsx
+@@ -0,0 +1,95 @@
++/*
++ * Copyright 2020 The Backstage Authors
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import React, { useContext, PropsWithChildren } from 'react';
++import { Link, makeStyles } from '@material-ui/core';
++import HomeIcon from '@material-ui/icons/Home';
++import ExtensionIcon from '@material-ui/icons/Extension';
++import MapIcon from '@material-ui/icons/MyLocation';
++import LibraryBooks from '@material-ui/icons/LibraryBooks';
++import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
++import LogoFull from './LogoFull';
++import LogoIcon from './LogoIcon';
++import { NavLink } from 'react-router-dom';
++import { Settings as SidebarSettings } from '@backstage/plugin-user-settings';
++import { SidebarSearch } from '@backstage/plugin-search';
++import {
++  Sidebar,
++  SidebarPage,
++  sidebarConfig,
++  SidebarContext,
++  SidebarItem,
++  SidebarDivider,
++  SidebarSpace,
++  SidebarScrollWrapper,
++} from '@backstage/core-components';
++
++const useSidebarLogoStyles = makeStyles({
++  root: {
++    width: sidebarConfig.drawerWidthClosed,
++    height: 3 * sidebarConfig.logoHeight,
++    display: 'flex',
++    flexFlow: 'row nowrap',
++    alignItems: 'center',
++    marginBottom: -14,
++  },
++  link: {
++    width: sidebarConfig.drawerWidthClosed,
++    marginLeft: 24,
++  },
++});
++
++const SidebarLogo = () => {
++  const classes = useSidebarLogoStyles();
++  const { isOpen } = useContext(SidebarContext);
++
++  return (
++    <div className={classes.root}>
++      <Link
++        component={NavLink}
++        to="/"
++        underline="none"
++        className={classes.link}
++      >
++        {isOpen ? <LogoFull /> : <LogoIcon />}
++      </Link>
++    </div>
++  );
++};
++
++export const Root = ({ children }: PropsWithChildren<{}>) => (
++  <SidebarPage>
++    <Sidebar>
++      <SidebarLogo />
++      <SidebarSearch />
++      <SidebarDivider />
++      {/* Global nav, not org-specific */}
++      <SidebarItem icon={HomeIcon} to="catalog" text="Home" />
++      <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
++      <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
++      <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
++      {/* End global nav */}
++      <SidebarDivider />
++      <SidebarScrollWrapper>
++        <SidebarItem icon={MapIcon} to="tech-radar" text="Tech Radar" />
++      </SidebarScrollWrapper>
++      <SidebarSpace />
++      <SidebarDivider />
++      <SidebarSettings />
++    </Sidebar>
++    {children}
++  </SidebarPage>
++);
+diff --git a/plugins/welcome/src/plugin.ts b/packages/app/src/components/Root/index.ts
+similarity index 68%
+rename from plugins/welcome/src/plugin.ts
+rename to packages/app/src/components/Root/index.ts
+index 3121e98..dff706f 100644
+--- a/plugins/welcome/src/plugin.ts
++++ b/packages/app/src/components/Root/index.ts
+@@ -1,3 +1,3 @@
+ /*
+- * Copyright 2020 Spotify AB
++ * Copyright 2020 The Backstage Authors
+  *
+@@ -15,10 +15,3 @@
+  */
+-import { createPlugin } from '@backstage/core';
+-import WelcomePage from './components/WelcomePage';
+ 
+-export const plugin = createPlugin({
+-  id: 'welcome',
+-  register({ router }) {
+-    router.registerRoute('/', WelcomePage);
+-  },
+-});
++export { Root } from './Root';
+diff --git a/packages/app/src/components/catalog/EntityPage.tsx b/packages/app/src/components/catalog/EntityPage.tsx
+new file mode 100644
+index 0000000..d3b4b78
+--- /dev/null
++++ b/packages/app/src/components/catalog/EntityPage.tsx
+@@ -0,0 +1,337 @@
++/*
++ * Copyright 2020 The Backstage Authors
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++import React from 'react';
++import { Button, Grid } from '@material-ui/core';
++import {
++  EntityApiDefinitionCard,
++  EntityConsumedApisCard,
++  EntityConsumingComponentsCard,
++  EntityHasApisCard,
++  EntityProvidedApisCard,
++  EntityProvidingComponentsCard,
++} from '@backstage/plugin-api-docs';
++import {
++  EntityAboutCard,
++  EntityDependsOnComponentsCard,
++  EntityDependsOnResourcesCard,
++  EntitySystemDiagramCard,
++  EntityHasComponentsCard,
++  EntityHasResourcesCard,
++  EntityHasSubcomponentsCard,
++  EntityHasSystemsCard,
++  EntityLayout,
++  EntityLinksCard,
++  EntitySwitch,
++  EntityOrphanWarning,
++  EntityProcessingErrorsPanel,
++  isComponentType,
++  isKind,
++  hasCatalogProcessingErrors,
++  isOrphan,
++} from '@backstage/plugin-catalog';
++import {
++  isGithubActionsAvailable,
++  EntityGithubActionsContent,
++} from '@backstage/plugin-github-actions';
++import {
++  EntityUserProfileCard,
++  EntityGroupProfileCard,
++  EntityMembersListCard,
++  EntityOwnershipCard,
++} from '@backstage/plugin-org';
++import { EntityTechdocsContent } from '@backstage/plugin-techdocs';
++import { EmptyState } from '@backstage/core-components';
++
++const cicdContent = (
++  // This is an example of how you can implement your company's logic in entity page.
++  // You can for example enforce that all components of type 'service' should use GitHubActions
++  <EntitySwitch>
++    <EntitySwitch.Case if={isGithubActionsAvailable}>
++      <EntityGithubActionsContent />
++    </EntitySwitch.Case>
++
++    <EntitySwitch.Case>
++      <EmptyState
++        title="No CI/CD available for this entity"
++        missing="info"
++        description="You need to add an annotation to your component if you want to enable CI/CD for it. You can read more about annotations in Backstage by clicking the button below."
++        action={
++          <Button
++            variant="contained"
++            color="primary"
++            href="https://backstage.io/docs/features/software-catalog/well-known-annotations"
++          >
++            Read more
++          </Button>
++        }
++      />
++    </EntitySwitch.Case>
++  </EntitySwitch>
++);
++
++const entityWarningContent = (
++  <>
++    <EntitySwitch>
++      <EntitySwitch.Case if={isOrphan}>
++        <Grid item xs={12}>
++          <EntityOrphanWarning />
++        </Grid>
++      </EntitySwitch.Case>
++    </EntitySwitch>
++
++    <EntitySwitch>
++      <EntitySwitch.Case if={hasCatalogProcessingErrors}>
++        <Grid item xs={12}>
++          <EntityProcessingErrorsPanel />
++        </Grid>
++      </EntitySwitch.Case>
++    </EntitySwitch>
++  </>
++);
++
++const overviewContent = (
++  <Grid container spacing={3} alignItems="stretch">
++    {entityWarningContent}
++    <Grid item md={6}>
++      <EntityAboutCard variant="gridItem" />
++    </Grid>
++    <Grid item md={4} xs={12}>
++      <EntityLinksCard />
++    </Grid>
++    <Grid item md={8} xs={12}>
++      <EntityHasSubcomponentsCard variant="gridItem" />
++    </Grid>
++  </Grid>
++);
++
++const serviceEntityPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      {overviewContent}
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/ci-cd" title="CI/CD">
++      {cicdContent}
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/api" title="API">
++      <Grid container spacing={3} alignItems="stretch">
++        <Grid item md={6}>
++          <EntityProvidedApisCard />
++        </Grid>
++        <Grid item md={6}>
++          <EntityConsumedApisCard />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/dependencies" title="Dependencies">
++      <Grid container spacing={3} alignItems="stretch">
++        <Grid item md={6}>
++          <EntityDependsOnComponentsCard variant="gridItem" />
++        </Grid>
++        <Grid item md={6}>
++          <EntityDependsOnResourcesCard variant="gridItem" />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/docs" title="Docs">
++      <EntityTechdocsContent />
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++const websiteEntityPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      {overviewContent}
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/ci-cd" title="CI/CD">
++      {cicdContent}
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/dependencies" title="Dependencies">
++      <Grid container spacing={3} alignItems="stretch">
++        <Grid item md={6}>
++          <EntityDependsOnComponentsCard variant="gridItem" />
++        </Grid>
++        <Grid item md={6}>
++          <EntityDependsOnResourcesCard variant="gridItem" />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/docs" title="Docs">
++      <EntityTechdocsContent />
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++/**
++ * NOTE: This page is designed to work on small screens such as mobile devices.
++ * This is based on Material UI Grid. If breakpoints are used, each grid item must set the `xs` prop to a column size or to `true`,
++ * since this does not default. If no breakpoints are used, the items will equitably share the available space.
++ * https://material-ui.com/components/grid/#basic-grid.
++ */
++
++const defaultEntityPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      {overviewContent}
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/docs" title="Docs">
++      <EntityTechdocsContent />
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++const componentPage = (
++  <EntitySwitch>
++    <EntitySwitch.Case if={isComponentType('service')}>
++      {serviceEntityPage}
++    </EntitySwitch.Case>
++
++    <EntitySwitch.Case if={isComponentType('website')}>
++      {websiteEntityPage}
++    </EntitySwitch.Case>
++
++    <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
++  </EntitySwitch>
++);
++
++const apiPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      <Grid container spacing={3}>
++        {entityWarningContent}
++        <Grid item md={6}>
++          <EntityAboutCard />
++        </Grid>
++        <Grid item md={4} xs={12}>
++          <EntityLinksCard />
++        </Grid>
++        <Grid container item md={12}>
++          <Grid item md={6}>
++            <EntityProvidingComponentsCard />
++          </Grid>
++          <Grid item md={6}>
++            <EntityConsumingComponentsCard />
++          </Grid>
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++
++    <EntityLayout.Route path="/definition" title="Definition">
++      <Grid container spacing={3}>
++        <Grid item xs={12}>
++          <EntityApiDefinitionCard />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++const userPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      <Grid container spacing={3}>
++        {entityWarningContent}
++        <Grid item xs={12} md={6}>
++          <EntityUserProfileCard variant="gridItem" />
++        </Grid>
++        <Grid item xs={12} md={6}>
++          <EntityOwnershipCard variant="gridItem" />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++const groupPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      <Grid container spacing={3}>
++        {entityWarningContent}
++        <Grid item xs={12} md={6}>
++          <EntityGroupProfileCard variant="gridItem" />
++        </Grid>
++        <Grid item xs={12} md={6}>
++          <EntityOwnershipCard variant="gridItem" />
++        </Grid>
++        <Grid item xs={12}>
++          <EntityMembersListCard />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++const systemPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      <Grid container spacing={3} alignItems="stretch">
++        {entityWarningContent}
++        <Grid item md={6}>
++          <EntityAboutCard variant="gridItem" />
++        </Grid>
++        <Grid item md={6}>
++          <EntityHasComponentsCard variant="gridItem" />
++        </Grid>
++        <Grid item md={6}>
++          <EntityHasApisCard variant="gridItem" />
++        </Grid>
++        <Grid item md={6}>
++          <EntityHasResourcesCard variant="gridItem" />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++    <EntityLayout.Route path="/diagram" title="Diagram">
++      <EntitySystemDiagramCard />
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++const domainPage = (
++  <EntityLayout>
++    <EntityLayout.Route path="/" title="Overview">
++      <Grid container spacing={3} alignItems="stretch">
++        {entityWarningContent}
++        <Grid item md={6}>
++          <EntityAboutCard variant="gridItem" />
++        </Grid>
++        <Grid item md={6}>
++          <EntityHasSystemsCard variant="gridItem" />
++        </Grid>
++      </Grid>
++    </EntityLayout.Route>
++  </EntityLayout>
++);
++
++export const entityPage = (
++  <EntitySwitch>
++    <EntitySwitch.Case if={isKind('component')} children={componentPage} />
++    <EntitySwitch.Case if={isKind('api')} children={apiPage} />
++    <EntitySwitch.Case if={isKind('group')} children={groupPage} />
++    <EntitySwitch.Case if={isKind('user')} children={userPage} />
++    <EntitySwitch.Case if={isKind('system')} children={systemPage} />
++    <EntitySwitch.Case if={isKind('domain')} children={domainPage} />
++
++    <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
++  </EntitySwitch>
++);
+diff --git a/packages/app/src/components/search/SearchPage.tsx b/packages/app/src/components/search/SearchPage.tsx
+new file mode 100644
+index 0000000..7b3c2b2
+--- /dev/null
++++ b/packages/app/src/components/search/SearchPage.tsx
+@@ -0,0 +1,86 @@
++import React from 'react';
++import { makeStyles, Theme, Grid, List, Paper } from '@material-ui/core';
++
++import { CatalogResultListItem } from '@backstage/plugin-catalog';
++import {
++  SearchBar,
++  SearchFilter,
++  SearchResult,
++  DefaultResultListItem,
++} from '@backstage/plugin-search';
++import { Content, Header, Page } from '@backstage/core-components';
++
++const useStyles = makeStyles((theme: Theme) => ({
++  bar: {
++    padding: theme.spacing(1, 0),
++  },
++  filters: {
++    padding: theme.spacing(2),
++  },
++  filter: {
++    '& + &': {
++      marginTop: theme.spacing(2.5),
++    },
++  },
++}));
++
++const SearchPage = () => {
++  const classes = useStyles();
++
++  return (
++    <Page themeId="home">
++      <Header title="Search" />
++      <Content>
++        <Grid container direction="row">
++          <Grid item xs={12}>
++            <Paper className={classes.bar}>
++              <SearchBar debounceTime={100} />
++            </Paper>
++          </Grid>
++          <Grid item xs={3}>
++            <Paper className={classes.filters}>
++              <SearchFilter.Select
++                className={classes.filter}
++                name="kind"
++                values={['Component', 'Template']}
++              />
++              <SearchFilter.Checkbox
++                className={classes.filter}
++                name="lifecycle"
++                values={['experimental', 'production']}
++              />
++            </Paper>
++          </Grid>
++          <Grid item xs={9}>
++            <SearchResult>
++              {({ results }) => (
++                <List>
++                  {results.map(({ type, document }) => {
++                    switch (type) {
++                      case 'software-catalog':
++                        return (
++                          <CatalogResultListItem
++                            key={document.location}
++                            result={document}
++                          />
++                        );
++                      default:
++                        return (
++                          <DefaultResultListItem
++                            key={document.location}
++                            result={document}
++                          />
++                        );
++                    }
++                  })}
++                </List>
++              )}
++            </SearchResult>
++          </Grid>
++        </Grid>
++      </Content>
++    </Page>
++  );
++};
++
++export const searchPage = <SearchPage />;
+diff --git a/packages/app/src/plugins.ts b/packages/app/src/plugins.ts
+deleted file mode 100644
+index 000bd79..0000000
+--- a/packages/app/src/plugins.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-export { plugin as WelcomePlugin } from 'plugin-welcome';
+diff --git a/packages/backend/Dockerfile b/packages/backend/Dockerfile
+index 3e8ba36..31231a3 100644
+--- a/packages/backend/Dockerfile
++++ b/packages/backend/Dockerfile
+@@ -1,9 +1,28 @@
+-FROM node:12
++# This dockerfile builds an image for the backend package.
++# It should be executed with the root of the repo as docker context.
++#
++# Before building this image, be sure to have run the following commands in the repo root:
++#
++# yarn install
++# yarn tsc
++# yarn build
++#
++# Once the commands have been run, you can build the image using `yarn build-image`
+ 
+-WORKDIR /usr/src/app
++FROM node:14-buster-slim
+ 
+-COPY . .
++WORKDIR /app
+ 
+-RUN yarn install --frozen-lockfile --production
++# Copy repo skeleton first, to avoid unnecessary docker cache invalidation.
++# The skeleton contains the package.json of each package in the monorepo,
++# and along with yarn.lock and the root package.json, that's enough to run yarn install.
++COPY yarn.lock package.json packages/backend/dist/skeleton.tar.gz ./
++RUN tar xzf skeleton.tar.gz && rm skeleton.tar.gz
+ 
+-CMD ["node", "packages/backend"]
++RUN yarn install --frozen-lockfile --production --network-timeout 300000 && rm -rf "$(yarn cache dir)"
++
++# Then copy the rest of the backend bundle, along with any other files we might want.
++COPY packages/backend/dist/bundle.tar.gz app-config.yaml ./
++RUN tar xzf bundle.tar.gz && rm bundle.tar.gz
++
++CMD ["node", "packages/backend", "--config", "app-config.yaml"]
+diff --git a/packages/backend/README.md b/packages/backend/README.md
+index f94904a..81e0f80 100644
+--- a/packages/backend/README.md
++++ b/packages/backend/README.md
+@@ -5,4 +5,4 @@ This package is an EXAMPLE of a Backstage backend.
+ The main purpose of this package is to provide a test bed for Backstage plugins
+-that have a backend part. Feel free to experiment locally or within your fork
+-by adding dependencies and routes to this backend, to try things out.
++that have a backend part. Feel free to experiment locally or within your fork by
++adding dependencies and routes to this backend, to try things out.
+ 
+@@ -35,4 +35,4 @@ yarn start
+ 
+-Substitute `x` for actual values, or leave them as
+-dummy values just to try out the backend without using the auth or sentry features.
++Substitute `x` for actual values, or leave them as dummy values just to try out
++the backend without using the auth or sentry features.
+ 
+@@ -42,17 +42,10 @@ The backend starts up on port 7000 per default.
+ 
+-If you want to use the catalog functionality, you need to add so called locations
+-to the backend. These are places where the backend can find some entity descriptor
+-data to consume and serve.
++If you want to use the catalog functionality, you need to add so called
++locations to the backend. These are places where the backend can find some
++entity descriptor data to consume and serve. For more information, see
++[Software Catalog Overview - Adding Components to the Catalog](https://backstage.io/docs/features/software-catalog/software-catalog-overview#adding-components-to-the-catalog).
+ 
+-To get started, you can issue the following after starting the backend, from inside
+-the `plugins/catalog-backend` directory:
+-
+-```bash
+-yarn mock-data
+-```
+-
+-You should then start seeing data on `localhost:7000/catalog/entities`.
+-
+-The catalog currently runs in-memory only, so feel free to try it out, but it will
+-need to be re-populated on next startup.
++To get started quickly, this template already includes some statically configured example locations
++in `app-config.yaml` under `catalog.locations`. You can remove and replace these locations as you
++like, and also override them for local development in `app-config.local.yaml`.
+ 
+@@ -60,5 +53,10 @@ need to be re-populated on next startup.
+ 
+-We chose [Passport](http://www.passportjs.org/) as authentication platform due to its comprehensive set of supported authentication [strategies](http://www.passportjs.org/packages/).
++We chose [Passport](http://www.passportjs.org/) as authentication platform due
++to its comprehensive set of supported authentication
++[strategies](http://www.passportjs.org/packages/).
+ 
+-Read more about the [auth-backend](https://github.com/spotify/backstage/blob/master/plugins/auth-backend/README.md) and [how to add a new provider](https://github.com/spotify/backstage/blob/master/docs/auth/add-auth-provider.md)
++Read more about the
++[auth-backend](https://github.com/backstage/backstage/blob/master/plugins/auth-backend/README.md)
++and
++[how to add a new provider](https://github.com/backstage/backstage/blob/master/docs/auth/add-auth-provider.md)
+ 
+@@ -66,3 +64,3 @@ Read more about the [auth-backend](https://github.com/spotify/backstage/blob/mas
+ 
+-- [Backstage Readme](https://github.com/spotify/backstage/blob/master/README.md)
+-- [Backstage Documentation](https://github.com/spotify/backstage/blob/master/docs/README.md)
++- [Backstage Readme](https://github.com/backstage/backstage/blob/master/README.md)
++- [Backstage Documentation](https://github.com/backstage/backstage/blob/master/docs/README.md)
+diff --git a/packages/backend/package.json b/packages/backend/package.json
+index 03ca7a4..a343d53 100644
+--- a/packages/backend/package.json
++++ b/packages/backend/package.json
+@@ -6,8 +6,5 @@
+   "private": true,
+-  "engines": {
+-    "node": "12"
+-  },
+   "scripts": {
+-    "build": "backstage-cli backend:build",
+-    "build-image": "backstage-cli backend:build-image example-backend",
++    "build": "backstage-cli backend:bundle",
++    "build-image": "docker build ../.. -f Dockerfile --tag backstage",
+     "start": "backstage-cli backend:dev",
+@@ -19,19 +16,22 @@
+   "dependencies": {
+-    "@backstage/backend-common": "^0.1.1-alpha.12",
+-    "@backstage/catalog-model": "^0.1.1-alpha.12",
+-    "@backstage/config": "^0.1.1-alpha.13",
+-    "@backstage/config-loader": "^0.1.1-alpha.13",
+-    "@backstage/plugin-auth-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-catalog-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-identity-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-proxy-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-rollbar-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-scaffolder-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-sentry-backend": "^0.1.1-alpha.12",
+-    "@backstage/plugin-techdocs-backend": "^0.1.1-alpha.12",
+-    "@octokit/rest": "^18.0.0",
+-    "dockerode": "^3.2.0",
++    "app": "0.0.0",
++    "@backstage/backend-common": "^0.9.6",
++    "@backstage/catalog-model": "^0.9.4",
++    "@backstage/catalog-client": "^0.5.0",
++    "@backstage/config": "^0.1.10",
++    "@backstage/plugin-app-backend": "^0.3.16",
++    "@backstage/plugin-auth-backend": "^0.4.4",
++    "@backstage/plugin-catalog-backend": "^0.17.0",
++    "@backstage/plugin-proxy-backend": "^0.2.13",
++    "@backstage/plugin-scaffolder-backend": "^0.15.8",
++    "@backstage/plugin-search-backend": "^0.2.6",
++    "@backstage/plugin-search-backend-node": "^0.4.2",
++    "@backstage/plugin-techdocs-backend": "^0.10.4",
++    "@gitbeaker/node": "^30.2.0",
++    "@octokit/rest": "^18.5.3",
++    "dockerode": "^3.2.1",
+     "express": "^4.17.1",
+-    "knex": "^0.21.1",
+-    "sqlite3": "^4.2.0",
++    "express-promise-router": "^4.1.0",
++    "knex": "^0.21.6",
++    "sqlite3": "^5.0.1",
+     "winston": "^3.2.1"
+@@ -39,8 +39,10 @@
+   "devDependencies": {
+-    "@backstage/cli": "^0.1.1-alpha.15",
+-    "@types/dockerode": "^2.5.32",
++    "@backstage/cli": "^0.7.16",
++    "@types/dockerode": "^3.2.1",
+     "@types/express": "^4.17.6",
+-    "@types/express-serve-static-core": "^4.17.5",
+-    "@types/helmet": "^0.0.47"
+-  }
++    "@types/express-serve-static-core": "^4.17.5"
++  },
++  "files": [
++    "dist"
++  ]
+ }
+diff --git a/packages/backend/src/index.test.ts b/packages/backend/src/index.test.ts
+index d18873c..7814b8c 100644
+--- a/packages/backend/src/index.test.ts
++++ b/packages/backend/src/index.test.ts
+@@ -1,17 +1 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+ import { PluginEnvironment } from './types';
+diff --git a/packages/backend/src/index.ts b/packages/backend/src/index.ts
+index 9ec5c92..f2b14b2 100644
+--- a/packages/backend/src/index.ts
++++ b/packages/backend/src/index.ts
+@@ -1,17 +1 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+ /*
+@@ -24,13 +8,18 @@
+ 
++import Router from 'express-promise-router';
+ import {
+   createServiceBuilder,
++  loadBackendConfig,
+   getRootLogger,
+   useHotMemoize,
++  notFoundHandler,
++  CacheManager,
++  DatabaseManager,
++  SingleHostDiscovery,
++  UrlReaders,
+ } from '@backstage/backend-common';
+-import { ConfigReader, AppConfig } from '@backstage/config';
+-import { loadConfig } from '@backstage/config-loader';
+-import knex from 'knex';
++import { Config } from '@backstage/config';
++import app from './plugins/app';
+ import auth from './plugins/auth';
+ import catalog from './plugins/catalog';
+-import identity from './plugins/identity';
+ import scaffolder from './plugins/scaffolder';
+@@ -38,20 +27,20 @@ import proxy from './plugins/proxy';
+ import techdocs from './plugins/techdocs';
++import search from './plugins/search';
+ import { PluginEnvironment } from './types';
+ 
+-function makeCreateEnv(loadedConfigs: AppConfig[]) {
+-  const config = ConfigReader.fromConfigs(loadedConfigs);
++function makeCreateEnv(config: Config) {
++  const root = getRootLogger();
++  const reader = UrlReaders.default({ logger: root, config });
++  const discovery = SingleHostDiscovery.fromConfig(config);
+ 
+-  return (plugin: string): PluginEnvironment => {
+-    const logger = getRootLogger().child({ type: 'plugin', plugin });
++  root.info(`Created UrlReader ${reader}`);
++
++  const cacheManager = CacheManager.fromConfig(config);
++  const databaseManager = DatabaseManager.fromConfig(config);
+ 
+-    const knexConfig = {
+-      client: 'sqlite3',
+-      connection: ':memory:',
+-      useNullAsDefault: true,
+-    };
+-    const database = knex(knexConfig);
+-    database.client.pool.on('createSuccess', (_eventId: any, resource: any) => {
+-      resource.run('PRAGMA foreign_keys = ON', () => {});
+-    });
+-    return { logger, database, config };
++  return (plugin: string): PluginEnvironment => {
++    const logger = root.child({ type: 'plugin', plugin });
++    const database = databaseManager.forPlugin(plugin);
++    const cache = cacheManager.forPlugin(plugin);
++    return { logger, database, cache, config, reader, discovery };
+   };
+@@ -60,5 +49,7 @@ function makeCreateEnv(loadedConfigs: AppConfig[]) {
+ async function main() {
+-  const configs = await loadConfig();
+-  const configReader = ConfigReader.fromConfigs(configs);
+-  const createEnv = makeCreateEnv(configs);
++  const config = await loadBackendConfig({
++    argv: process.argv,
++    logger: getRootLogger(),
++  });
++  const createEnv = makeCreateEnv(config);
+ 
+@@ -67,14 +58,20 @@ async function main() {
+   const authEnv = useHotMemoize(module, () => createEnv('auth'));
+-  const identityEnv = useHotMemoize(module, () => createEnv('identity'));
+   const proxyEnv = useHotMemoize(module, () => createEnv('proxy'));
+   const techdocsEnv = useHotMemoize(module, () => createEnv('techdocs'));
++  const searchEnv = useHotMemoize(module, () => createEnv('search'));
++  const appEnv = useHotMemoize(module, () => createEnv('app'));
++
++  const apiRouter = Router();
++  apiRouter.use('/catalog', await catalog(catalogEnv));
++  apiRouter.use('/scaffolder', await scaffolder(scaffolderEnv));
++  apiRouter.use('/auth', await auth(authEnv));
++  apiRouter.use('/techdocs', await techdocs(techdocsEnv));
++  apiRouter.use('/proxy', await proxy(proxyEnv));
++  apiRouter.use('/search', await search(searchEnv));
++  apiRouter.use(notFoundHandler());
+ 
+   const service = createServiceBuilder(module)
+-    .loadConfig(configReader)
+-    .addRouter('/catalog', await catalog(catalogEnv))
+-    .addRouter('/scaffolder', await scaffolder(scaffolderEnv))
+-    .addRouter('/auth', await auth(authEnv))
+-    .addRouter('/identity', await identity(identityEnv))
+-    .addRouter('/techdocs', await techdocs(techdocsEnv))
+-    .addRouter('/proxy', await proxy(proxyEnv));
++    .loadConfig(config)
++    .addRouter('/api', apiRouter)
++    .addRouter('', await app(appEnv));
+ 
+diff --git a/packages/backend/src/plugins/app.ts b/packages/backend/src/plugins/app.ts
+new file mode 100644
+index 0000000..07fb04f
+--- /dev/null
++++ b/packages/backend/src/plugins/app.ts
+@@ -0,0 +1,14 @@
++import { createRouter } from '@backstage/plugin-app-backend';
++import { Router } from 'express';
++import { PluginEnvironment } from '../types';
++
++export default async function createPlugin({
++  logger,
++  config,
++}: PluginEnvironment): Promise<Router> {
++  return await createRouter({
++    logger,
++    config,
++    appPackageName: 'app',
++  });
++}
+diff --git a/packages/backend/src/plugins/auth.ts b/packages/backend/src/plugins/auth.ts
+index b24dd6c..5216510 100644
+--- a/packages/backend/src/plugins/auth.ts
++++ b/packages/backend/src/plugins/auth.ts
+@@ -1,18 +1,3 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+ import { createRouter } from '@backstage/plugin-auth-backend';
++import { Router } from 'express';
+ import { PluginEnvironment } from '../types';
+@@ -23,4 +8,5 @@ export default async function createPlugin({
+   config,
+-}: PluginEnvironment) {
+-  return await createRouter({ logger, config, database });
++  discovery,
++}: PluginEnvironment): Promise<Router> {
++  return await createRouter({ logger, config, database, discovery });
+ }
+diff --git a/packages/backend/src/plugins/catalog.ts b/packages/backend/src/plugins/catalog.ts
+index 41e4226..876cb6b 100644
+--- a/packages/backend/src/plugins/catalog.ts
++++ b/packages/backend/src/plugins/catalog.ts
+@@ -1,56 +1,14 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-import {
+-  createRouter,
+-  DatabaseEntitiesCatalog,
+-  DatabaseLocationsCatalog,
+-  DatabaseManager,
+-  HigherOrderOperations,
+-  LocationReaders,
+-  runPeriodically,
+-} from '@backstage/plugin-catalog-backend';
++import { CatalogBuilder } from '@backstage/plugin-catalog-backend';
++import { ScaffolderEntitiesProcessor } from '@backstage/plugin-scaffolder-backend';
++import { Router } from 'express';
+ import { PluginEnvironment } from '../types';
+-import { useHotCleanup } from '@backstage/backend-common';
+-
+-export default async function createPlugin({
+-  logger,
+-  database,
+-}: PluginEnvironment) {
+-  const locationReader = new LocationReaders(logger);
+-
+-  const db = await DatabaseManager.createDatabase(database, { logger });
+-  const entitiesCatalog = new DatabaseEntitiesCatalog(db);
+-  const locationsCatalog = new DatabaseLocationsCatalog(db);
+-  const higherOrderOperation = new HigherOrderOperations(
+-    entitiesCatalog,
+-    locationsCatalog,
+-    locationReader,
+-    logger,
+-  );
+-
+-  useHotCleanup(
+-    module,
+-    runPeriodically(() => higherOrderOperation.refreshAllLocations(), 10000),
+-  );
+ 
+-  return await createRouter({
+-    entitiesCatalog,
+-    locationsCatalog,
+-    higherOrderOperation,
+-    logger,
+-  });
++export default async function createPlugin(
++  env: PluginEnvironment,
++): Promise<Router> {
++  const builder = await CatalogBuilder.create(env);
++  builder.addProcessor(new ScaffolderEntitiesProcessor());
++  const { processingEngine, router } = await builder.build();
++  await processingEngine.start();
++  return router;
+ }
+diff --git a/packages/backend/src/plugins/identity.ts b/packages/backend/src/plugins/identity.ts
+deleted file mode 100644
+index 63a3269..0000000
+--- a/packages/backend/src/plugins/identity.ts
++++ /dev/null
+@@ -1,22 +0,0 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-import { createRouter } from '@backstage/plugin-identity-backend';
+-import { PluginEnvironment } from '../types';
+-
+-export default async function createPlugin({ logger }: PluginEnvironment) {
+-  return await createRouter({ logger });
+-}
+diff --git a/packages/backend/src/plugins/proxy.ts b/packages/backend/src/plugins/proxy.ts
+index 4964de1..506f6d9 100644
+--- a/packages/backend/src/plugins/proxy.ts
++++ b/packages/backend/src/plugins/proxy.ts
+@@ -1,18 +1,3 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-// @ts-ignore
+ import { createRouter } from '@backstage/plugin-proxy-backend';
++import { Router } from 'express';
+ import { PluginEnvironment } from '../types';
+@@ -22,4 +7,5 @@ export default async function createPlugin({
+   config,
+-}: PluginEnvironment) {
+-  return await createRouter({ logger, config });
++  discovery,
++}: PluginEnvironment): Promise<Router> {
++  return await createRouter({ logger, config, discovery });
+ }
+diff --git a/packages/backend/src/plugins/scaffolder.ts b/packages/backend/src/plugins/scaffolder.ts
+index a9e5f18..6be2e97 100644
+--- a/packages/backend/src/plugins/scaffolder.ts
++++ b/packages/backend/src/plugins/scaffolder.ts
+@@ -1,55 +1,26 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-import {
+-  CookieCutter,
+-  createRouter,
+-  FilePreparer,
+-  GithubPreparer,
+-  Preparers,
+-  GithubPublisher,
+-  CreateReactAppTemplater,
+-  Templaters,
+-} from '@backstage/plugin-scaffolder-backend';
+-import { Octokit } from '@octokit/rest';
+-import type { PluginEnvironment } from '../types';
++import { DockerContainerRunner } from '@backstage/backend-common';
++import { CatalogClient } from '@backstage/catalog-client';
++import { createRouter } from '@backstage/plugin-scaffolder-backend';
+ import Docker from 'dockerode';
++import { Router } from 'express';
++import type { PluginEnvironment } from '../types';
+ 
+-export default async function createPlugin({ logger }: PluginEnvironment) {
+-  const cookiecutterTemplater = new CookieCutter();
+-  const craTemplater = new CreateReactAppTemplater();
+-  const templaters = new Templaters();
+-  templaters.register('cookiecutter', cookiecutterTemplater);
+-  templaters.register('cra', craTemplater);
+-
+-  const filePreparer = new FilePreparer();
+-  const githubPreparer = new GithubPreparer();
+-  const preparers = new Preparers();
+-
+-  preparers.register('file', filePreparer);
+-  preparers.register('github', githubPreparer);
+-
+-  const githubClient = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
+-  const publisher = new GithubPublisher({ client: githubClient });
+-
++export default async function createPlugin({
++  logger,
++  config,
++  database,
++  reader,
++  discovery,
++}: PluginEnvironment): Promise<Router> {
+   const dockerClient = new Docker();
++  const containerRunner = new DockerContainerRunner({ dockerClient });
++  const catalogClient = new CatalogClient({ discoveryApi: discovery });
++
+   return await createRouter({
+-    preparers,
+-    templaters,
+-    publisher,
++    containerRunner,
+     logger,
+-    dockerClient,
++    config,
++    database,
++    catalogClient,
++    reader,
+   });
+diff --git a/packages/backend/src/plugins/search.ts b/packages/backend/src/plugins/search.ts
+new file mode 100644
+index 0000000..7fc317d
+--- /dev/null
++++ b/packages/backend/src/plugins/search.ts
+@@ -0,0 +1,39 @@
++import { useHotCleanup } from '@backstage/backend-common';
++import { createRouter } from '@backstage/plugin-search-backend';
++import {
++  IndexBuilder,
++  LunrSearchEngine,
++} from '@backstage/plugin-search-backend-node';
++import { PluginEnvironment } from '../types';
++import { DefaultCatalogCollator } from '@backstage/plugin-catalog-backend';
++
++export default async function createPlugin({
++  logger,
++  discovery,
++  config,
++}: PluginEnvironment) {
++  // Initialize a connection to a search engine.
++  const searchEngine = new LunrSearchEngine({ logger });
++  const indexBuilder = new IndexBuilder({ logger, searchEngine });
++
++  // Collators are responsible for gathering documents known to plugins. This
++  // particular collator gathers entities from the software catalog.
++  indexBuilder.addCollator({
++    defaultRefreshIntervalSeconds: 600,
++    collator: DefaultCatalogCollator.fromConfig(config, { discovery }),
++  });
++
++  // The scheduler controls when documents are gathered from collators and sent
++  // to the search engine for indexing.
++  const { scheduler } = await indexBuilder.build();
++
++  // A 3 second delay gives the backend server a chance to initialize before
++  // any collators are executed, which may attempt requests against the API.
++  setTimeout(() => scheduler.start(), 3000);
++  useHotCleanup(module, () => scheduler.stop());
++
++  return await createRouter({
++    engine: indexBuilder.getSearchEngine(),
++    logger,
++  });
++}
+diff --git a/packages/backend/src/plugins/techdocs.ts b/packages/backend/src/plugins/techdocs.ts
+index 0d03bfa..906d86d 100644
+--- a/packages/backend/src/plugins/techdocs.ts
++++ b/packages/backend/src/plugins/techdocs.ts
+@@ -1,22 +1,53 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-import { createRouter } from '@backstage/plugin-techdocs-backend';
++import { DockerContainerRunner } from '@backstage/backend-common';
++import {
++  createRouter,
++  Generators,
++  Preparers,
++  Publisher,
++} from '@backstage/plugin-techdocs-backend';
++import Docker from 'dockerode';
++import { Router } from 'express';
+ import { PluginEnvironment } from '../types';
+ 
+-export default async function createPlugin({ logger }: PluginEnvironment) {
+-  return await createRouter({ logger });
++export default async function createPlugin({
++  logger,
++  config,
++  discovery,
++  reader,
++}: PluginEnvironment): Promise<Router> {
++  // Preparers are responsible for fetching source files for documentation.
++  const preparers = await Preparers.fromConfig(config, {
++    logger,
++    reader,
++  });
++
++  // Docker client (conditionally) used by the generators, based on techdocs.generators config.
++  const dockerClient = new Docker();
++  const containerRunner = new DockerContainerRunner({ dockerClient });
++
++  // Generators are used for generating documentation sites.
++  const generators = await Generators.fromConfig(config, {
++    logger,
++    containerRunner,
++  });
++
++  // Publisher is used for
++  // 1. Publishing generated files to storage
++  // 2. Fetching files from storage and passing them to TechDocs frontend.
++  const publisher = await Publisher.fromConfig(config, {
++    logger,
++    discovery,
++  });
++
++  // checks if the publisher is working and logs the result
++  await publisher.getReadiness();
++
++  return await createRouter({
++    preparers,
++    generators,
++    publisher,
++    logger,
++    config,
++    discovery,
++  });
+ }
+diff --git a/packages/backend/src/types.ts b/packages/backend/src/types.ts
+index f7df3d0..6c78a2a 100644
+--- a/packages/backend/src/types.ts
++++ b/packages/backend/src/types.ts
+@@ -1,20 +1,9 @@
+-/*
+- * Copyright 2020 Spotify AB
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-import Knex from 'knex';
+ import { Logger } from 'winston';
+ import { Config } from '@backstage/config';
++import {
++  PluginCacheManager,
++  PluginDatabaseManager,
++  PluginEndpointDiscovery,
++  UrlReader,
++} from '@backstage/backend-common';
+ 
+@@ -22,4 +11,7 @@ export type PluginEnvironment = {
+   logger: Logger;
+-  database: Knex;
++  database: PluginDatabaseManager;
++  cache: PluginCacheManager;
+   config: Config;
++  reader: UrlReader;
++  discovery: PluginEndpointDiscovery;
+ };
+diff --git a/plugins/welcome/.eslintrc.js b/plugins/welcome/.eslintrc.js
+deleted file mode 100644
+index 13573ef..0000000
+--- a/plugins/welcome/.eslintrc.js
++++ /dev/null
+@@ -1,3 +0,0 @@
+-module.exports = {
+-  extends: [require.resolve('@backstage/cli/config/eslint')],
+-};
+diff --git a/plugins/welcome/README.md b/plugins/welcome/README.md
+deleted file mode 100644
+index e9b9dd0..0000000
+--- a/plugins/welcome/README.md
++++ /dev/null
+@@ -1,3 +0,0 @@
+-# Title
+-
+-Welcome to the welcome plugin!
+diff --git a/plugins/welcome/dev/index.tsx b/plugins/welcome/dev/index.tsx
+deleted file mode 100644
+index 6fce113..0000000
+--- a/plugins/welcome/dev/index.tsx
++++ /dev/null
+@@ -1,4 +0,0 @@
+-import { createDevApp } from '@backstage/dev-utils';
+-import { plugin } from '../src/plugin';
+-
+-createDevApp().registerPlugin(plugin).render();
+diff --git a/plugins/welcome/package.json b/plugins/welcome/package.json
+deleted file mode 100644
+index 0651588..0000000
+--- a/plugins/welcome/package.json
++++ /dev/null
+@@ -1,41 +0,0 @@
+-{
+-  "name": "plugin-welcome",
+-  "version": "0.0.0",
+-  "main": "src/index.ts",
+-  "types": "src/index.ts",
+-  "private": true,
+-  "publishConfig": {
+-    "main": "dist/index.esm.js",
+-    "types": "dist/index.d.ts"
+-  },
+-  "scripts": {
+-    "build": "backstage-cli plugin:build",
+-    "start": "backstage-cli plugin:serve",
+-    "lint": "backstage-cli lint",
+-    "test": "backstage-cli test",
+-    "diff": "backstage-cli plugin:diff",
+-    "prepack": "backstage-cli prepack",
+-    "postpack": "backstage-cli postpack",
+-    "clean": "backstage-cli clean"
+-  },
+-  "dependencies": {
+-    "@backstage/core": "^0.1.1-alpha.12",
+-    "@backstage/theme": "^0.1.1-alpha.12",
+-    "@material-ui/core": "^4.9.1",
+-    "@material-ui/icons": "^4.9.1",
+-    "react": "^16.13.1",
+-    "react-dom": "^16.13.1",
+-    "react-use": "^14.2.0",
+-    "react-router-dom": "6.0.0-beta.0"
+-  },
+-  "devDependencies": {
+-    "@backstage/cli": "^0.1.1-alpha.12",
+-    "@backstage/dev-utils": "^0.1.1-alpha.12",
+-    "@testing-library/jest-dom": "^5.10.1",
+-    "@testing-library/react": "^10.4.1",
+-    "jest-fetch-mock": "^3.0.3"
+-  },
+-  "files": [
+-    "dist"
+-  ]
+-}
+diff --git a/plugins/welcome/src/components/Timer/Timer.tsx b/plugins/welcome/src/components/Timer/Timer.tsx
+deleted file mode 100644
+index 24c79f9..0000000
+--- a/plugins/welcome/src/components/Timer/Timer.tsx
++++ /dev/null
+@@ -1,58 +0,0 @@
+-import React, { FC } from 'react';
+-import { HeaderLabel } from '@backstage/core';
+-
+-const timeFormat = { hour: '2-digit', minute: '2-digit' };
+-const utcOptions = { timeZone: 'UTC', ...timeFormat };
+-const nycOptions = { timeZone: 'America/New_York', ...timeFormat };
+-const tyoOptions = { timeZone: 'Asia/Tokyo', ...timeFormat };
+-const stoOptions = { timeZone: 'Europe/Stockholm', ...timeFormat };
+-
+-const defaultTimes = {
+-  timeNY: '',
+-  timeUTC: '',
+-  timeTYO: '',
+-  timeSTO: '',
+-};
+-
+-function getTimes() {
+-  const d = new Date();
+-  const lang = window.navigator.language;
+-
+-  // Using the browser native toLocaleTimeString instead of huge moment-tz
+-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleTimeString
+-  const timeNY = d.toLocaleTimeString(lang, nycOptions);
+-  const timeUTC = d.toLocaleTimeString(lang, utcOptions);
+-  const timeTYO = d.toLocaleTimeString(lang, tyoOptions);
+-  const timeSTO = d.toLocaleTimeString(lang, stoOptions);
+-
+-  return { timeNY, timeUTC, timeTYO, timeSTO };
+-}
+-
+-const HomePageTimer: FC<{}> = () => {
+-  const [{ timeNY, timeUTC, timeTYO, timeSTO }, setTimes] = React.useState(
+-    defaultTimes,
+-  );
+-
+-  React.useEffect(() => {
+-    setTimes(getTimes());
+-
+-    const intervalId = setInterval(() => {
+-      setTimes(getTimes());
+-    }, 1000);
+-
+-    return () => {
+-      clearInterval(intervalId);
+-    };
+-  }, []);
+-
+-  return (
+-    <>
+-      <HeaderLabel label="NYC" value={timeNY} />
+-      <HeaderLabel label="UTC" value={timeUTC} />
+-      <HeaderLabel label="STO" value={timeSTO} />
+-      <HeaderLabel label="TYO" value={timeTYO} />
+-    </>
+-  );
+-};
+-
+-export default HomePageTimer;
+diff --git a/plugins/welcome/src/components/Timer/index.ts b/plugins/welcome/src/components/Timer/index.ts
+deleted file mode 100644
+index f1fc55b..0000000
+--- a/plugins/welcome/src/components/Timer/index.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-export { default } from './Timer';
+diff --git a/plugins/welcome/src/components/WelcomePage/WelcomePage.test.tsx b/plugins/welcome/src/components/WelcomePage/WelcomePage.test.tsx
+deleted file mode 100644
+index 27e44a3..0000000
+--- a/plugins/welcome/src/components/WelcomePage/WelcomePage.test.tsx
++++ /dev/null
+@@ -1,16 +0,0 @@
+-import React from 'react';
+-import { render } from '@testing-library/react';
+-import WelcomePage from './WelcomePage';
+-import { ThemeProvider } from '@material-ui/core';
+-import { lightTheme } from '@backstage/theme';
+-
+-describe('WelcomePage', () => {
+-  it('should render', () => {
+-    const rendered = render(
+-      <ThemeProvider theme={lightTheme}>
+-        <WelcomePage />
+-      </ThemeProvider>,
+-    );
+-    expect(rendered.baseElement).toBeInTheDocument();
+-  });
+-});
+diff --git a/plugins/welcome/src/components/WelcomePage/WelcomePage.tsx b/plugins/welcome/src/components/WelcomePage/WelcomePage.tsx
+deleted file mode 100644
+index d9ef052..0000000
+--- a/plugins/welcome/src/components/WelcomePage/WelcomePage.tsx
++++ /dev/null
+@@ -1,106 +0,0 @@
+-import React, { FC } from 'react';
+-import { Link as RouterLink } from 'react-router-dom';
+-import {
+-  Typography,
+-  Grid,
+-  List,
+-  ListItem,
+-  ListItemText,
+-  Link,
+-} from '@material-ui/core';
+-import Timer from '../Timer';
+-import {
+-  Content,
+-  InfoCard,
+-  Header,
+-  Page,
+-  pageTheme,
+-  ContentHeader,
+-  SupportButton,
+-} from '@backstage/core';
+-
+-const WelcomePage: FC<{}> = () => {
+-  const profile = { givenName: '' };
+-
+-  return (
+-    <Page theme={pageTheme.home}>
+-      <Header
+-        title={`Welcome ${profile.givenName || 'to Backstage'}`}
+-        subtitle="Some quick intro and links."
+-      >
+-        <Timer />
+-      </Header>
+-      <Content>
+-        <ContentHeader title="Getting Started">
+-          <SupportButton />
+-        </ContentHeader>
+-        <Grid container>
+-          <Grid item xs={12} md={6}>
+-            <InfoCard>
+-              <Typography variant="body1" gutterBottom>
+-                You now have a running instance of Backstage!
+-                <span role="img" aria-label="confetti">
+-                  🎉
+-                </span>
+-                Let's make sure you get the most out of this platform by walking
+-                you through the basics.
+-              </Typography>
+-              <Typography variant="h6" gutterBottom>
+-                The Setup
+-              </Typography>
+-              <Typography variant="body1" paragraph>
+-                Backstage is put together from three base concepts: the core,
+-                the app and the plugins.
+-              </Typography>
+-              <List>
+-                <ListItem>
+-                  <ListItemText primary="The core is responsible for base functionality." />
+-                </ListItem>
+-                <ListItem>
+-                  <ListItemText primary="The app provides the base UI and connects the plugins." />
+-                </ListItem>
+-                <ListItem>
+-                  <ListItemText
+-                    primary="The plugins make Backstage useful for the end users with
+-                  specific views and functionality."
+-                  />
+-                </ListItem>
+-              </List>
+-              <Typography variant="h6" gutterBottom>
+-                Try It Out
+-              </Typography>
+-              <Typography variant="body1" paragraph>
+-                We suggest you either check out the documentation for{' '}
+-                <Link href="https://github.com/spotify/backstage/blob/master/docs/getting-started/create-a-plugin.md">
+-                  creating a plugin
+-                </Link>{' '}
+-                or have a look in the code for the{' '}
+-                <Link component={RouterLink} to="/home">
+-                  Home Page
+-                </Link>{' '}
+-                in the directory "plugins/home-page/src".
+-              </Typography>
+-            </InfoCard>
+-          </Grid>
+-          <Grid item>
+-            <InfoCard>
+-              <Typography variant="h5">Quick Links</Typography>
+-              <List>
+-                <ListItem>
+-                  <Link href="https://backstage.io">backstage.io</Link>
+-                </ListItem>
+-                <ListItem>
+-                  <Link href="https://github.com/spotify/backstage/blob/master/docs/getting-started/create-a-plugin.md">
+-                    Create a plugin
+-                  </Link>
+-                </ListItem>
+-              </List>
+-            </InfoCard>
+-          </Grid>
+-        </Grid>
+-      </Content>
+-    </Page>
+-  );
+-};
+-
+-export default WelcomePage;
+diff --git a/plugins/welcome/src/components/WelcomePage/index.ts b/plugins/welcome/src/components/WelcomePage/index.ts
+deleted file mode 100644
+index b031301..0000000
+--- a/plugins/welcome/src/components/WelcomePage/index.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-export { default } from './WelcomePage';
+diff --git a/plugins/welcome/src/index.ts b/plugins/welcome/src/index.ts
+deleted file mode 100644
+index 99edba2..0000000
+--- a/plugins/welcome/src/index.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-export { plugin } from './plugin';
+diff --git a/plugins/welcome/src/plugin.test.ts b/plugins/welcome/src/plugin.test.ts
+deleted file mode 100644
+index f5bf8e6..0000000
+--- a/plugins/welcome/src/plugin.test.ts
++++ /dev/null
+@@ -1,7 +0,0 @@
+-import { plugin } from './plugin';
+-
+-describe('welcome', () => {
+-  it('should export plugin', () => {
+-    expect(plugin).toBeDefined();
+-  });
+-});
+diff --git a/plugins/welcome/src/setupTests.ts b/plugins/welcome/src/setupTests.ts
+deleted file mode 100644
+index 7b0828b..0000000
+--- a/plugins/welcome/src/setupTests.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-import '@testing-library/jest-dom';
+diff --git a/tsconfig.json b/tsconfig.json
+index 9dbc3bb..ba3f901 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -10,4 +10,4 @@
+   "compilerOptions": {
+-    "outDir": "dist",
+-    "skipLibCheck": true
++    "outDir": "dist-types",
++    "rootDir": "."
+   }
